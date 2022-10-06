@@ -1,0 +1,3 @@
+*.pdf
+_cmake_build_release/
+.idea/
