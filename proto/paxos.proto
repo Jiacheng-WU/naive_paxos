@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+import "google/protobuf/any.proto";
+
+package paxos;
+
+service PaxosService {
+  rpc Ping (EmptyMessage) returns (EmptyMessage) {}
+  rpc Receive (Proposal) returns (Response) {}
+}
+
+message Proposal {
+  string    type = 1;
+  int32     proposed_num = 2;
+  int32     seq = 3;
+  string    value = 4;
+  int32     me = 5;
+  int32     done = 6;
+}
+
+message Response {
+  string    type = 1;
+  bool      approved = 2;
+  int32     number = 3;
+  string    value = 4;
+  int32     me = 5;
+  int32     done = 6;
+}
+
+message EmptyMessage {}
