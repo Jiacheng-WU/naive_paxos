@@ -17,6 +17,7 @@ enum class MessageType : std::uint32_t {
     ACCEPT,
     ACCEPT_REPLY,
     LEARN,
+    LEARN_REPLY,
     SUBMIT, // Client submit Requests
     SUBMIT_REPLY // Client get Results
 };

@@ -81,12 +81,41 @@ class connection {
             case MessageType::ACCEPT:
             case MessageType::ACCEPT_REPLY:
             case MessageType::LEARN:
+            case MessageType::LEARN_REPLY:
                 // For Paxos Protocal
+                dispatch_paxos_message(std::move(m_p), std::move(endpoint), paras);
                 break;
             case MessageType::SUBMIT:
+            case MessageType::SUBMIT_REPLY:
+
                 break;
+            default:
+                assert("Cannot Reach Here");
         }
     }
+
+    void dispatch_paxos_message(std::unique_ptr<Message> m_p, std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint, asio_handler_paras paras) {
+        Message& m = *m_p;
+        uint32_t instance_seq = m.instance;
+
+        switch (m_p->type) {
+            case MessageType::PREPARE:
+                break;
+            case MessageType::PREPARE_REPLY:
+                break;
+            case MessageType::ACCEPT:
+                break;
+            case MessageType::ACCEPT_REPLY:
+                break;
+            case MessageType::LEARN:
+                break;
+            case MessageType::LEARN_REPLY:
+                break;
+            default:
+                assert("Cannot Reach Here");
+        }
+    }
+
 
     char out_message_buffer[Message::size()];
     char in_message_buffer[Message::size()];
