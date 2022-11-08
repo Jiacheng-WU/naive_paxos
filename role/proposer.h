@@ -6,9 +6,13 @@
 #define PAXOS_PROPOSER_H
 
 
-class proposer {
+
+
+class Proposer {
+  public:
+
   private:
-    int proposal_number;
+
 };
 
 

@@ -5,8 +5,10 @@
 #ifndef PAXOS_ACCEPTOR_H
 #define PAXOS_ACCEPTOR_H
 
+#include "message.h"
 
-class acceptor {
+class Acceptor {
+  public:
 
 };
 
