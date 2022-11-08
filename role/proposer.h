@@ -7,7 +7,8 @@
 
 
 class proposer {
-
+  private:
+    int proposal_number;
 };
 
 

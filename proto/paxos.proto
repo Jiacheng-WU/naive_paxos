@@ -1,12 +1,12 @@
 syntax = "proto3";
 
-import "google/protobuf/any.proto";
+// import "google/protobuf/any.proto";
 
-package paxos;
-
-service PaxosService {
-  rpc Ping (EmptyMessage) returns (EmptyMessage) {}
-  rpc Receive (Proposal) returns (Response) {}
+service PaxosExecutorBase {
+  rpc HeartBeat (EmptyMessage) returns (EmptyMessage) {}
+  rpc onPrepare (Proposal) returns (Promise) {}
+  rpc onAccept (Proposal) returns (Promise) {}
+  rpc onLearn (Proposal) returns (EmptyMessage) {}
 }
 
 message Proposal {
@@ -18,7 +18,7 @@ message Proposal {
   int32     done = 6;
 }
 
-message Response {
+message Promise {
   string    type = 1;
   bool      approved = 2;
   int32     number = 3;

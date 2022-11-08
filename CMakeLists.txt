@@ -31,5 +31,5 @@ include_directories(role)
 
 add_executable(paxos main.cpp paxos.cpp paxos.h util/network.cpp util/network.h
         role/proposer.cpp role/proposer.h role/acceptor.cpp role/acceptor.h role/learner.cpp role/learner.h
-        )
-target_link_libraries(paxos gRPC::grpc++ ${Boost_LIBRARIES} my)
+        role/paxos.cpp role/paxos.h role/Instance.cpp role/Instance.h)
+target_link_libraries(paxos gRPC::grpc++ ${Boost_LIBRARIES} myproto)
