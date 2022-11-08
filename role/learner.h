@@ -6,7 +6,7 @@
 #define PAXOS_LEARNER_H
 
 
-class learner {
+class Learner {
 
 };
 
