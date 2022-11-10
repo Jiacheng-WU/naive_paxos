@@ -10,6 +10,6 @@
 
 int main(int argc, char* argv[]) {
 
-    std::cout << alignof(Message) << std::endl;
+    std::cout << sizeof(Message) << std::endl;
     return 0;
 }

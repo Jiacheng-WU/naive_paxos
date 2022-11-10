@@ -12,12 +12,13 @@
 #include "proposer.h"
 #include "acceptor.h"
 #include "learner.h"
+
 struct Instance {
     std::shared_mutex mutex;
     std::uint32_t seq;
-    Proposer p;
-    Acceptor a;
-    Learner l;
+    Proposer proposer;
+    Acceptor acceptor;
+    Learner learner;
     Instance(std::uint32_t seq): seq(seq) {};
 };
 
@@ -48,6 +49,7 @@ class Instances {
                 return instance;
             }
         }
+        return instance; // Also won't reach here
     }
 
 };
