@@ -9,23 +9,30 @@
 #include <map>
 #include <mutex>
 #include <shared_mutex>
+#include <atomic>
 #include "proposer.h"
 #include "acceptor.h"
 #include "learner.h"
 
+class PaxosExecutor;
+
+
 struct Instance {
-    std::shared_mutex mutex;
     std::uint32_t seq;
+    PaxosExecutor* server;
     Proposer proposer;
     Acceptor acceptor;
     Learner learner;
-    Instance(std::uint32_t seq): seq(seq) {};
+    Instance(std::uint32_t seq, PaxosExecutor* server):
+        seq(seq), server(server), proposer(this), acceptor(this), learner(this) {};
 };
 
 class Instances {
-
+  private:
+    PaxosExecutor* server;
   public:
 
+    Instances(PaxosExecutor* server): server(server) {}
     std::map<std::uint32_t, std::unique_ptr<Instance>> instances;
 
     std::shared_mutex mu;
@@ -44,7 +51,7 @@ class Instances {
         {
             std::unique_lock<std::shared_mutex> lock(mu);
             if (it == instances.end()) {
-                instances[instance_seq] = std::make_unique<Instance>(instance_seq);
+                instances[instance_seq] = std::make_unique<Instance>(instance_seq, server);
                 instance = instances[instance_seq].get();
                 return instance;
             }

@@ -9,7 +9,7 @@
 
 #include <memory>
 
-#include "boost/serialization/serialization.hpp"
+// #include "boost/serialization/serialization.hpp"
 
 
 enum class MessageType : std::uint32_t {
@@ -58,29 +58,15 @@ struct ProposalValue {
         UNLOCK_FAILED // have been not previous locked
     } operation = UNDEFINED;
     std::uint32_t object = 0;
-
-    friend class boost::serialization::access;
-    template<class Archive>
-    void serialize(Archive & ar, const unsigned int version)
-    {
-        ar & operation;
-        ar & object;
-    }
 };
 // Specified proposal for lock service
 
 struct Proposal {
     std::uint32_t number; // n
     ProposalValue value;
-
-    friend class boost::serialization::access;
-    template<class Archive>
-    void serialize(Archive & ar, const unsigned int version)
-    {
-        ar & number;
-        ar & value;
-    }
 };
+
+struct MessageBuffer;
 
 struct Message {
     MessageType type = MessageType::UNDEFINED;
@@ -139,19 +125,33 @@ struct Message {
         return std::move(cloned);
     }
 
-    friend class boost::serialization::access;
-    template<class Archive>
-    void serialize(Archive & ar, const unsigned int version)
-    {
-        ar & type;
-        ar & sequence;
-        ar & from_id;
-        ar & proposal;
-        ar & additional_field_1;
-        ar & additional_field_2;
+// #warning "IGNORE LITTLE ENDIAN OR LARGE ENDIAN"
+    void serialize_to(char buffer[size()]) {
+        memcpy(buffer, this, size());
     }
+
+    void deserialize_from(char buffer[size()]) {
+        memcpy(this, buffer, size());
+    }
+
+
+//    friend class boost::serialization::access;
+//    template<class Archive>
+//    void serialize(Archive & ar, const unsigned int version)
+//    {
+//        ar & type;
+//        ar & sequence;
+//        ar & from_id;
+//        ar & proposal;
+//        ar & additional_field_1;
+//        ar & additional_field_2;
+//    }
+
 };
 
+struct MessageBuffer {
+    char buffer[Message::size()];
+};
 
 
 #endif //PAXOS_MESSAGE_H
