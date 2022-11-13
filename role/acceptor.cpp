@@ -4,7 +4,7 @@
 
 #include "acceptor.h"
 #include "instance.h"
-#include "paxos.h"
+#include "server.h"
 
 std::unique_ptr<Message> Acceptor::on_prepare(std::unique_ptr<Message> prepare) {
     std::lock_guard<std::mutex> lock(acceptor_mutex);

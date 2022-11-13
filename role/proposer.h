@@ -25,10 +25,9 @@ class Proposer {
 
     // Equals to promise
 
-    void prepare(std::unique_ptr<Message> prepare);
 
     std::unique_ptr<Message> on_submit(std::unique_ptr<Message> submit);
-
+    void prepare(std::unique_ptr<Message> prepare);
     /**
      * @param promise
      * @return nullptr represents ignore this out-of-dated promise

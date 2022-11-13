@@ -4,7 +4,7 @@
 
 #include "proposer.h"
 #include "instance.h"
-#include "paxos.h"
+#include "server.h"
 #include "config.h"
 
 Proposer::Proposer(Instance *inst) : instance(inst) {

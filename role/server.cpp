@@ -2,7 +2,7 @@
 // Created by Jiacheng Wu on 11/7/22.
 //
 
-#include "paxos.h"
+#include "server.h"
 
 void PaxosServer::dispatch_received_message(std::unique_ptr<Message> m_p, std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint, asio_handler_paras paras) {
     switch (m_p->type) {

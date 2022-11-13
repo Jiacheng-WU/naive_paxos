@@ -3,7 +3,7 @@
 //
 
 #include "learner.h"
-#include "paxos.h"
+#include "server.h"
 
 Learner::Learner(Instance *inst): instance(inst) {
     current_accepted_acceptors.resize(this->instance->server->get_number_of_nodes(), false);

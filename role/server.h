@@ -2,8 +2,8 @@
 // Created by Jiacheng Wu on 11/7/22.
 //
 
-#ifndef PAXOS_PAXOS_H
-#define PAXOS_PAXOS_H
+#ifndef PAXOS_SERVER_H
+#define PAXOS_SERVER_H
 
 #include "network.h"
 #include "instance.h"
@@ -102,4 +102,4 @@ class PaxosServer {
 };
 
 
-#endif //PAXOS_PAXOS_H
+#endif //PAXOS_SERVER_H
