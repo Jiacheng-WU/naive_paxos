@@ -11,6 +11,9 @@
 int main(int argc, char* argv[]) {
 //    auto k = std::move(do_nothing_handler);
 //    do_nothing_handler(nullptr, nullptr, {});
-    std::cout << sizeof(Message) << std::endl;
+
+    boost::asio::ip::udp::endpoint ends;
+
+    std::cout << sizeof(boost::asio::ip::udp::endpoint) << std::endl;
     return 0;
 }

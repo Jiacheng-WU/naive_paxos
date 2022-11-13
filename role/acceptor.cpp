@@ -14,6 +14,7 @@ std::unique_ptr<Message> Acceptor::on_prepare(std::unique_ptr<Message> prepare) 
         denial->type = MessageType::DENIAL;
         denial->proposal.number = this->highest_prepare_proposal_number;
         denial->prepare_proposal_number = prepare_proposal_number;
+        // Do not influence the value;
         denial->from_id = this->instance->server->get_id();
         return std::move(denial);
     } else {
@@ -57,28 +58,28 @@ std::unique_ptr<Message> Acceptor::on_accept(std::unique_ptr<Message> accept) {
 }
 
 void Acceptor::promise(std::unique_ptr<Message> promise) {
-    auto endpoint = Config::get_addr_by_id(promise->from_id);
+    auto endpoint = this->instance->server->config->get_addr_by_id(promise->from_id);
     promise->from_id = this->instance->server->get_id();
-    this->instance->server->get_connect().do_send(std::move(promise), std::move(endpoint), do_nothing_handler);
+    this->instance->server->connect->do_send(std::move(promise), std::move(endpoint), do_nothing_handler);
 }
 
 void Acceptor::denial(std::unique_ptr<Message> denial) {
-    auto endpoint = Config::get_addr_by_id(denial->from_id);
+    auto endpoint = this->instance->server->config->get_addr_by_id(denial->from_id);
     denial->from_id = this->instance->server->get_id();
-    this->instance->server->get_connect().do_send(std::move(denial), std::move(endpoint), do_nothing_handler);
+    this->instance->server->connect->do_send(std::move(denial), std::move(endpoint), do_nothing_handler);
 }
 
 void Acceptor::accepted(std::unique_ptr<Message> accepted) {
-    auto endpoint = Config::get_addr_by_id(accepted->from_id);
+    auto endpoint = this->instance->server->config->get_addr_by_id(accepted->from_id);
     accepted->from_id = this->instance->server->get_id();
-    this->instance->server->get_connect().do_send(std::move(accepted), std::move(endpoint),
+    this->instance->server->connect->do_send(std::move(accepted), std::move(endpoint),
                                                   do_nothing_handler);
 }
 
 void Acceptor::rejected(std::unique_ptr<Message> rejected) {
-    auto endpoint = Config::get_addr_by_id(rejected->from_id);
+    auto endpoint = this->instance->server->config->get_addr_by_id(rejected->from_id);
     rejected->from_id = this->instance->server->get_id();
-    this->instance->server->get_connect().do_send(std::move(rejected), std::move(endpoint),
+    this->instance->server->connect->do_send(std::move(rejected), std::move(endpoint),
                                                   do_nothing_handler);
 
 }

@@ -32,8 +32,8 @@ class Logger {
     }
   private:
 
-    char out_message_buffer[Message::size()];
-    char in_message_buffer[Message::size()];
+    std::uint8_t out_message_buffer[Message::size()];
+    std::uint8_t in_message_buffer[Message::size()];
     std::fstream log_file;
 };
 

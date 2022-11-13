@@ -28,16 +28,17 @@ enum class MessageType : std::uint32_t {
     /** For Learner **/
     INFORM, // DISTINGUISH learner to other learner, no ack further need
     LEARN, // learner to distinguish learn
+    UNDECIDE, // DISTINGUISH learner did not know the current commands fro
 
 
 
     /** Client -> Server **/
     SUBMIT, // Client submit Requests to Server
-    REDIRECT, // Non-Leader Server REDIRECT TO Leader Server
+    COMMAND, // Server Internal
 
     /** Server -> Client **/
     RESPONSE, // Client get Results, Distinguish learner reply
-    REDIRECTED,
+    REDIRECT, // Current Server is not the Leader
 };
 
 
@@ -54,8 +55,10 @@ struct ProposalValue {
         // For Clients Reponse
         LOCK_SUCCEED,
         UNLOCK_SUCCEED,
-        LOCK_FAILED, // have been previously locked
-        UNLOCK_FAILED // have been not previous locked
+        LOCK_FAILED, // have been previously locked by other clients
+        LOCK_AGAIN, // have been previously locked by itself
+        UNLOCK_FAILED, // have been not previous locked
+        UNLOCK_AGAIN, // unlock on a already unlocked object
     } operation = UNDEFINED;
     std::uint32_t object = 0;
 };
@@ -71,10 +74,10 @@ struct MessageBuffer;
 struct Message {
     MessageType type = MessageType::UNDEFINED;
 
-    uint32_t sequence = 0; // For Paxos command sequence is mainly for Paxos Instances
+    std::uint32_t sequence = 0; // For Paxos command sequence is mainly for Paxos Instances
 
     union {
-        uint32_t from_id = 0; // use from id to maintain, as well as the id from client
+        std::uint32_t from_id = 0; // use from id to maintain, as well as the id from client
         /**
          * In fact, we may not necessary to maintain client id
          * But have this one is better to maintain only-once semantics
@@ -84,28 +87,29 @@ struct Message {
          * We should maintain the client endpoints in Server with map
          * In real, the client_id could at least be uint64_t with MAC and PORT
          **/
-        uint32_t client_id;
-        uint32_t redirect_id; // For Redirect Message
+        std::uint32_t leader_id; // For Redirect Message
+        std::uint32_t client_ip; // For ipv4
     };
     Proposal proposal;
     union {
-        uint32_t additional_field_1 = 0;
+        std::uint32_t additional_field_1 = 0;
         /**
          * For acceptor to identify which prepare_proposal_number
          * In fact, the acceptor can only promise to the corresponding prepare_proposal_number
          * Thus, we need to identify it in on_promise of proposer
          * Ignore if the current proposer already propose a higher number proposal
          **/
-        uint32_t prepare_proposal_number;
+        std::uint32_t prepare_proposal_number;
         /**
          * It is not necessary to remember the accept proposal number in accepted message
          * But it may accelerate for the rejected message not avoid next round proposal
          */
-        uint32_t accept_proposal_number;
-        uint32_t client_once; // For Client -> Server
+        std::uint32_t accept_proposal_number;
+        std::uint32_t client_port; // For Client -> Server
     };
     union {
-        uint32_t additional_field_2 = 0;
+        std::uint32_t additional_field_2 = 0;
+        std::uint32_t client_once;
     };
 
     [[nodiscard]] static consteval std::size_t size() {
@@ -113,7 +117,7 @@ struct Message {
     }
 
     // Cannot be virtual, otherwise influence the
-    std::unique_ptr<Message> clone() const {
+    [[nodiscard]] std::unique_ptr<Message> clone() const {
         std::unique_ptr<Message> cloned = std::make_unique<Message>();
         // We could customize which attribute should be cloned;
         cloned->type = this->type;
@@ -126,11 +130,11 @@ struct Message {
     }
 
 // #warning "IGNORE LITTLE ENDIAN OR LARGE ENDIAN"
-    void serialize_to(char buffer[size()]) {
+    void serialize_to(std::uint8_t buffer[size()]) {
         memcpy(buffer, this, size());
     }
 
-    void deserialize_from(char buffer[size()]) {
+    void deserialize_from(std::uint8_t buffer[size()]) {
         memcpy(this, buffer, size());
     }
 
@@ -150,7 +154,7 @@ struct Message {
 };
 
 struct MessageBuffer {
-    char buffer[Message::size()];
+    std::uint8_t buffer[Message::size()];
 };
 
 

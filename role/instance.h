@@ -14,25 +14,25 @@
 #include "acceptor.h"
 #include "learner.h"
 
-class PaxosExecutor;
+class PaxosServer;
 
 
 struct Instance {
     std::uint32_t seq;
-    PaxosExecutor* server;
+    PaxosServer* server;
     Proposer proposer;
     Acceptor acceptor;
     Learner learner;
-    Instance(std::uint32_t seq, PaxosExecutor* server):
+    Instance(std::uint32_t seq, PaxosServer* server):
         seq(seq), server(server), proposer(this), acceptor(this), learner(this) {};
 };
 
 class Instances {
   private:
-    PaxosExecutor* server;
+    PaxosServer* server;
   public:
 
-    Instances(PaxosExecutor* server): server(server) {}
+    Instances(PaxosServer* server): server(server) {}
     std::map<std::uint32_t, std::unique_ptr<Instance>> instances;
 
     std::shared_mutex mu;

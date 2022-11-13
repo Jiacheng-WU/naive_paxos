@@ -7,6 +7,7 @@
 
 
 #include <mutex>
+#include <boost/dynamic_bitset.hpp>
 #include "message.h"
 #include "config.h"
 
@@ -15,14 +16,14 @@ class Instance;
 class Learner {
   public:
 
-    Learner(Instance* inst):instance(inst) {}
+    Learner(Instance* inst);
 
     // For distinguished learner
     std::unique_ptr<Message> on_accepted(std::unique_ptr<Message> accepted);
 
-    std::unique_ptr<Message> on_inform(std::unique_ptr<Message> inform) {
-        return std::move(inform);
-    }
+    void inform(std::unique_ptr<Message> inform);
+
+    std::unique_ptr<Message> on_inform(std::unique_ptr<Message> inform);
 
     std::unique_ptr<Message> on_learn(std::unique_ptr<Message> learn) {
         return std::move(learn);
@@ -38,8 +39,9 @@ class Learner {
 
     std::uint32_t highest_accepted_proposal_number {0};
     ProposalValue highest_accepted_proposal_value {};
-    std::bitset<Config::number_of_nodes> current_accepted_acceptors {};
+    boost::dynamic_bitset<std::uint8_t> current_accepted_acceptors;
     bool learned_majority_consensus;
+    bool has_been_informed;
 
     Instance* instance;
 };

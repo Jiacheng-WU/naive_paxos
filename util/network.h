@@ -22,14 +22,14 @@ struct asio_handler_paras {
 using Handler = std::function<void(std::unique_ptr<Message> m_p, std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint, asio_handler_paras paras)>;
 inline Handler do_nothing_handler = [](std::unique_ptr<Message> m_p, std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint, asio_handler_paras paras){};
 
-class connection {
+class Connection {
   public:
     /// Constructor.
-    connection(boost::asio::ip::udp::socket& socket_)
+    Connection(boost::asio::ip::udp::socket& socket_)
     : socket_(socket_) {}
 
-    /// Get the underlying socket. Used for making a connection or for accepting
-    /// an incoming connection.
+    /// Get the underlying socket. Used for making a Connection or for accepting
+    /// an incoming Connection.
     boost::asio::ip::udp::socket& socket()
     {
         return socket_;
@@ -43,9 +43,9 @@ class connection {
     void resend_if_do_send_failed(std::unique_ptr<Message> m_p, std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint, Handler handler) {
         struct inner_retry {
             std::uint32_t times;
-            connection* connect;
+            Connection* connect;
             Handler handler;
-            inner_retry(std::uint32_t times, connection* connect, Handler handler):
+            inner_retry(std::uint32_t times, Connection* connect, Handler handler):
                 times(times), connect(connect), handler(std::move(handler)) {};
             void operator()(std::unique_ptr<Message> m_p, std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint, asio_handler_paras paras) {
                 if (paras.ec) {
@@ -109,14 +109,7 @@ class connection {
                                     }
         });
     }
-
-
-
-
-    char out_message_buffer[Message::size()];
-    char in_message_buffer[Message::size()];
     boost::asio::ip::udp::socket& socket_;
-
 };
 
 
