@@ -14,8 +14,7 @@ class PaxosClient {
     PaxosClient(boost::asio::io_context& io_context, std::unique_ptr<Config> config):
         config(std::move(config)),
         socket(io_context,
-               boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(),
-                                              config->get_addr_by_id(config->get_current_id())->port()))
+               boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0))
                                               {}
 
 

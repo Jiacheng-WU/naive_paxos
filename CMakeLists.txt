@@ -17,7 +17,21 @@ include_directories(role)
 
 add_subdirectory(third_party/fmt-9.1.0)
 
-add_executable(paxos main.cpp util/network.cpp util/network.h
-        role/proposer.cpp role/proposer.h role/acceptor.cpp role/acceptor.h role/learner.cpp role/learner.h
-        role/server.cpp role/server.h role/instance.cpp role/instance.h role/message.h util/sync.h role/logger.cpp role/logger.h role/config.h role/config.cpp role/client.cpp role/client.h)
-target_link_libraries(paxos ${Boost_LIBRARIES} fmt::fmt)
+add_executable(paxos_server
+        server_main.cpp
+        util/network.cpp
+        role/proposer.cpp
+        role/acceptor.cpp
+        role/learner.cpp
+        role/server.cpp
+        role/instance.cpp
+        role/logger.cpp
+        role/config.cpp)
+target_link_libraries(paxos_server ${Boost_LIBRARIES} fmt::fmt)
+
+
+add_executable(paxos_client
+        client_main.cpp
+        role/client.cpp
+        role/config.cpp)
+target_link_libraries(paxos_client ${Boost_LIBRARIES} fmt::fmt)

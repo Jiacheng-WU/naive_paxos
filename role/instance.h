@@ -23,8 +23,8 @@ struct Instance {
     Proposer proposer;
     Acceptor acceptor;
     Learner learner;
-    Instance(std::uint32_t seq, PaxosServer* server):
-        seq(seq), server(server), proposer(this), acceptor(this), learner(this) {};
+    boost::asio::steady_timer deadline_timer;
+    Instance(std::uint32_t seq, PaxosServer* server);
 };
 
 class Instances {
@@ -37,27 +37,7 @@ class Instances {
 
     std::shared_mutex mu;
 
-    Instance* get_instance(std::uint32_t instance_seq) {
-        Instance *instance = nullptr;
-        std::map<std::uint32_t, std::unique_ptr<Instance>>::iterator it;
-        {
-            std::shared_lock<std::shared_mutex> lock(mu);
-            it = instances.find(instance_seq);
-            if (it != instances.end()) {
-                instance = it->second.get();
-                return instance;
-            }
-        }
-        {
-            std::unique_lock<std::shared_mutex> lock(mu);
-            if (it == instances.end()) {
-                instances[instance_seq] = std::make_unique<Instance>(instance_seq, server);
-                instance = instances[instance_seq].get();
-                return instance;
-            }
-        }
-        return instance; // Also won't reach here
-    }
+    Instance* get_instance(std::uint32_t instance_seq);
 
 };
 

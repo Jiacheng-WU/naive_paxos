@@ -30,6 +30,8 @@ enum class MessageType : std::uint32_t {
     LEARN, // learner to distinguish learn
     UNDECIDE, // DISTINGUISH learner did not know the current commands fro
 
+    /** For Heartbeat **/
+    HEARTBEAT,
 
 
     /** Client -> Server **/

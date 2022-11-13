@@ -35,6 +35,7 @@ std::unique_ptr<Message> Learner::on_accepted(std::unique_ptr<Message> accepted)
         inform->type = MessageType::INFORM;
         inform->proposal.number = this->highest_accepted_proposal_number;
         inform->proposal.value = this->highest_accepted_proposal_value;
+        this->instance->deadline_timer.cancel();
         return std::move(inform);
     } else {
         return nullptr;

@@ -16,13 +16,17 @@
 class PaxosServer {
   public:
     // We would like to load config outside
-    PaxosServer(boost::asio::io_context& io_context, std::unique_ptr<Config> config):
+    PaxosServer(boost::asio::io_context& io_context, std::uint32_t id, std::unique_ptr<Config> config):
             instances(this),
             socket(io_context,
                    boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(),
-                                                              config->get_addr_by_id(config->get_current_id())->port())),
-            connect(std::make_unique<Connection>(socket)) {
-        this->id = config-> get_current_id();
+                                                              config->get_addr_by_id(id)->port())),
+            connect(std::make_unique<Connection>(socket)),
+            leader_heartbeat_timer(socket.get_executor()),
+            nonleader_heartbeat_timer(socket.get_executor())
+            {
+        this->id = id;
+        this->leader_id = 0;
         this->number_of_nodes = config->get_number_of_nodes();
         this->submit_cmd_seq = 0;
         this->executed_cmd_seq = 0;
@@ -41,8 +45,71 @@ class PaxosServer {
 
     void start() {
         connect->do_receive(std::make_unique<Message>(), handler_wrapper(&PaxosServer::dispatch_received_message));
+
     }
 
+
+    void stop() {
+        socket.close();
+    }
+
+    void heartbeat() {
+
+        if (get_id() != leader_id) {
+            return;
+        }
+
+        std::unique_ptr<Message> heartbeat = std::make_unique<Message>();
+        heartbeat->type = MessageType::HEARTBEAT;
+        heartbeat->from_id = this->get_id();
+
+        for(std::uint32_t node_id = 0; node_id < this->get_number_of_nodes(); node_id++) {
+            // We need to clone the unique_ptr<Message> and just send to all nodes;
+            std::unique_ptr<Message> prepare_copy = heartbeat->clone();
+            std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint = this->config->get_addr_by_id(node_id);
+            this->connect->do_send(std::move(prepare_copy), std::move(endpoint), do_nothing_handler);
+        }
+    }
+
+    void start_leader_heartbeat() {
+        heartbeat();
+        // leader_heartbeat_timer.cancel();
+        leader_heartbeat_timer.expires_after(std::chrono::seconds(config->send_heartbeat_interval_seconds));
+        leader_heartbeat_timer.async_wait([this](const boost::system::error_code& error) {
+            if (error) { return; }
+            this->start_leader_heartbeat();
+        });
+    }
+
+    void stop_leader_heartbeat() {
+        leader_heartbeat_timer.cancel();
+    }
+
+    void reset_nonleader_heartbeat() {
+        nonleader_heartbeat_timer.cancel();
+        nonleader_heartbeat_timer.expires_after(std::chrono::seconds(config->ack_heartbeat_interval_seconds));
+        nonleader_heartbeat_timer.async_wait([this](const boost::system::error_code& error){
+            if (error) {
+                // cancel operation
+                return;
+            }
+            if (get_id() == leader_id) {
+                return;
+            }
+            // Process a new leader election !!
+            // Obtain a new Instance id;
+            // May request the learner until got a instance of leader
+        });
+    }
+
+    void on_heartbeat(std::unique_ptr<Message> heartbeat) {
+        {
+            if (get_id() == leader_id || heartbeat->from_id != leader_id) {
+                return;
+            }
+        }
+        reset_nonleader_heartbeat();
+    }
 
     void dispatch_received_message(std::unique_ptr<Message> m_p, std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint, asio_handler_paras paras);
 
@@ -60,8 +127,11 @@ class PaxosServer {
 
     std::unique_ptr<Message> on_submit_of_server(std::unique_ptr<Message> submit);
 
+    boost::asio::ip::udp::socket socket;
     std::unique_ptr<Connection> connect;
     std::unique_ptr<Config> config;
+    boost::asio::steady_timer leader_heartbeat_timer; // For send
+    boost::asio::steady_timer nonleader_heartbeat_timer; // For check
   private:
 
     std::unique_ptr<Message> execute_command(std::unique_ptr<Message> command);
@@ -70,7 +140,6 @@ class PaxosServer {
     std::uint32_t id;
     std::uint32_t number_of_nodes;
     Instances instances;
-    boost::asio::ip::udp::socket socket;
 
 
 //    std::uint32_t get_instance_sequence() {
@@ -98,6 +167,8 @@ class PaxosServer {
     };
 
     std::set<std::unique_ptr<Message>, Message_Command_Less> cmd_min_set;
+
+
     // connect should behave after socket for initialization orders
 };
 

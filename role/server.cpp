@@ -20,6 +20,7 @@ void PaxosServer::dispatch_received_message(std::unique_ptr<Message> m_p, std::u
             dispatch_paxos_message(std::move(m_p), std::move(endpoint), paras);
             break;
         case MessageType::SUBMIT:
+        case MessageType::HEARTBEAT:
             dispatch_server_message(std::move(m_p), std::move(endpoint), paras);
             break;
         default:
@@ -120,6 +121,9 @@ void PaxosServer::dispatch_server_message(std::unique_ptr<Message> m_p,
             }
             break;
         }
+        case MessageType::HEARTBEAT: {
+            this->on_heartbeat(std::move(m_p));
+        }
         default:
             assert("Connot Reach Here in Dispatch Server");
     }
@@ -154,14 +158,24 @@ static uint64_t get_uint64_from_udp_ipv4_endpoint(std::unique_ptr<boost::asio::i
 static uint64_t unused_udp_ipv4_number = ~0ull;
 
 std::unique_ptr<Message> PaxosServer::execute_command(std::unique_ptr<Message> command) {
-    std::lock_guard<std::mutex> lock(server_state_mutex);
     ProposalValue cmd = command->proposal.value;
     switch (cmd.operation) {
         case ProposalValue::UNDEFINED: {
             break;
         }
         case ProposalValue::ELECT_LEADER: {
-            leader_id = cmd.object;
+            if (leader_id != cmd.object) {
+                if (leader_id == id) {
+                    stop_leader_heartbeat();
+                }
+                leader_id = cmd.object;
+                if (leader_id == id) {
+                    start_leader_heartbeat();
+                    nonleader_heartbeat_timer.cancel();
+                } else {
+                    reset_nonleader_heartbeat();
+                }
+            }
             break;
         }
         case ProposalValue::LOCK: {
@@ -238,7 +252,6 @@ void PaxosServer::try_execute_command_and_response(std::unique_ptr<Message> comm
             lock.lock();
             std::size_t current_wait_sequence = (*cmd_min_set.begin())->sequence;
             if (current_wait_sequence == executed_cmd_seq + 1) {
-                // we only need to copy the command
                 std::unique_ptr<Message> next_command = std::move(cmd_min_set.extract(cmd_min_set.begin()).value());
                 std::unique_ptr<Message> response = execute_command(std::move(command));
                 executed_cmd_seq++;

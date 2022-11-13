@@ -87,6 +87,7 @@ std::unique_ptr<Message> Proposer::on_promise(std::unique_ptr<Message> promise) 
         accept->proposal.number = this->current_proposal_number;
         accept->proposal.value = this->highest_accepted_proposal_value;
         // accept->from_id = this->instance->server->get_id();
+        this->instance->deadline_timer.cancel();
         return std::move(accept);
     } else {
         return nullptr;
@@ -113,6 +114,7 @@ std::unique_ptr<Message> Proposer::on_denial(std::unique_ptr<Message> denial)  {
         // Do not reset the value since it is the original value;
         // reprepare->proposal.value = this->highest_accepted_proposal_value;
         // accept->from_id = this->instance->server->get_id();
+        this->instance->deadline_timer.cancel();
         return std::move(resubmit);
     } else {
         return nullptr;
@@ -132,6 +134,18 @@ void Proposer::accept(std::unique_ptr<Message> accept) {
         this->instance->server->connect->do_send(std::move(accept_copy), std::move(endpoint), do_nothing_handler);
     }
 
+    this->instance->deadline_timer.cancel();
+    this->instance->deadline_timer.expires_after(std::chrono::seconds(this->instance->server->config->after_accept_seconds));
+    this->instance->deadline_timer.async_wait(
+            [this, old_accept = accept->clone()](const boost::system::error_code& error) mutable {
+                if(error) {
+                    return ;
+                }
+                std::unique_ptr<Message> submit = std::move(old_accept);
+                submit->type = MessageType::SUBMIT;
+                std::unique_ptr<Message> prepare = this->instance->proposer.on_submit(std::move(submit));
+                instance->proposer.prepare(std::move(prepare));
+            });
 }
 
 void Proposer::prepare(std::unique_ptr<Message> prepare) {
@@ -143,4 +157,16 @@ void Proposer::prepare(std::unique_ptr<Message> prepare) {
         std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint = this->instance->server->config->get_addr_by_id(node_id);
         this->instance->server->connect->do_send(std::move(prepare_copy), std::move(endpoint), do_nothing_handler);
     }
+    this->instance->deadline_timer.cancel();
+    this->instance->deadline_timer.expires_after(std::chrono::seconds(this->instance->server->config->after_prepare_seconds));
+    this->instance->deadline_timer.async_wait(
+            [this, old_prepare = prepare->clone()](const boost::system::error_code& error) mutable {
+                if(error) {
+                    return ;
+                }
+                std::unique_ptr<Message> submit = std::move(old_prepare);
+                submit->type = MessageType::SUBMIT;
+                std::unique_ptr<Message> prepare = this->instance->proposer.on_submit(std::move(submit));
+                instance->proposer.prepare(std::move(prepare));
+    });
 }
