@@ -131,7 +131,9 @@ class PaxosClient {
     }
 
 
-    boost::asio::ip::udp::endpoint get_server_endpoint(std::uint32_t server_id) {
+    boost::asio::ip::udp::endpoint get_next_server_endpoint() {
+        server_id ++;
+        server_id %= config->get_number_of_nodes();
         return config->server_id_to_addr_map[server_id];
     }
 
@@ -189,7 +191,7 @@ class PaxosClient {
     boost::asio::ip::udp::socket socket;
     std::unique_ptr<Config> config;
     std::uint32_t client_op_id = 0;
-    std::uint32_t leader_server_id = 0;
+    std::uint32_t server_id = 0;
 };
 
 

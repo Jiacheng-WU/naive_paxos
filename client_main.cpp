@@ -13,13 +13,15 @@ int main(int argc, char* argv[]) {
 //    do_nothing_handler(nullptr, nullptr, {});
 
     std::uint32_t current_id = 0;
-    boost::asio::io_context io_context;
     std::unique_ptr<Config> config = std::make_unique<Config>();
     config->load_config();
 
-    PaxosClient client(io_context, std::move(config));
-
-    // std::cout << client.socket.local_endpoint().port() << std::endl;
+    PaxosClient client(std::move(config));
+    boost::system::error_code error;
+//    auto len = client.receive(boost::asio::buffer(client.in_message), std::chrono::milliseconds(1000), error);
+//    if (error) {
+//        std::cout << error.what() << std::endl;
+//    }
 
     client.lock(1);
     client.unlock(1);

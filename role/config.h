@@ -15,8 +15,8 @@ struct Config {
     using server_addr_t = boost::asio::ip::udp::endpoint;
     std::uint32_t number_of_nodes = 10;
 
-    std::uint32_t after_prepare_milliseconds = 2000;
-    std::uint32_t after_accept_milliseconds = 2000;
+    std::uint32_t after_prepare_milliseconds = 4000;
+    std::uint32_t after_accept_milliseconds = 4000;
 
     std::filesystem::path get_acceptor_file_path(server_id_t server_id);
     std::filesystem::path get_learner_file_path(server_id_t server_id);

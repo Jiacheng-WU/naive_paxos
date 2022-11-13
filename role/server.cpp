@@ -135,6 +135,7 @@ void PaxosServer::dispatch_server_message(std::unique_ptr<Message> m_p,
 //    Instance* instance = instances.get_instance(instance_seq);
     switch (m_p->type) {
         case MessageType::SUBMIT: {
+
             std::unique_ptr<Message> submit = this->on_submit_of_server(std::move(m_p));
             // We need to set client_id and maintain seq with proposal relation
             submit->proposal.value.client_id = get_uint64_from_udp_ipv4_endpoint(endpoint);
@@ -142,7 +143,12 @@ void PaxosServer::dispatch_server_message(std::unique_ptr<Message> m_p,
             Instance* instance = instances.get_instance(instance_seq);
             seq_to_expected_values.emplace(instance_seq, submit->proposal.value);
             std::unique_ptr<Message> prepare = instance->proposer.on_submit(std::move(submit));
-            instance->proposer.prepare(std::move(prepare));
+
+            if (prepare != nullptr) {
+                fmt::print("SUBMIT server {} recv client {}\n", id, prepare->proposal.value.client_once);
+                instance->proposer.prepare(std::move(prepare));
+            }
+            fmt::print("Finish PREPARE\n");
             break;
         }
 //        case MessageType::HEARTBEAT: {
@@ -162,11 +168,11 @@ std::unique_ptr<Message> PaxosServer::on_submit_of_server(std::unique_ptr<Messag
 //        redirect->leader_id = this->leader_id;
 //        return std::move(redirect);
 //    } else {
-        std::size_t sequence = executed_cmd_seq + 1;
-        std::unique_ptr<Message> submit = std::move(submit_from_client);
-        submit->sequence = sequence;
-        submit->type = MessageType::SUBMIT;
-        return std::move(submit);
+    std::size_t sequence = executed_cmd_seq + 1;
+    std::unique_ptr<Message> submit = std::move(submit_from_client);
+    submit->sequence = sequence;
+    submit->type = MessageType::SUBMIT;
+    return std::move(submit);
 //    }
 
 }

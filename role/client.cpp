@@ -23,16 +23,24 @@ PaxosClient::op_result_type PaxosClient::lock_or_unlock(std::uint32_t object_id,
     std::unique_ptr<Message> submit = construct_lock_or_unlock_message(object_id, op);
     submit->serialize_to(out_message);
 
-    socket.send_to(boost::asio::buffer(out_message), get_server_endpoint(leader_server_id));
+    socket.send_to(boost::asio::buffer(out_message), get_next_server_endpoint());
 
-    boost::asio::ip::udp::endpoint udp_endpoint;
-    socket.receive_from(boost::asio::buffer(in_message), udp_endpoint);
-    std::unique_ptr<Message> response_or_redirect = std::make_unique<Message>();
-    response_or_redirect->deserialize_from(in_message);
-    while (response_or_redirect->proposal.value.client_once < client_op_id) {
-        socket.receive_from(boost::asio::buffer(in_message), udp_endpoint);
-        response_or_redirect->deserialize_from(in_message);
+    boost::system::error_code error;
+    std::size_t len = this->receive(boost::asio::buffer(in_message), std::chrono::seconds(10), error);
+    while (len != 0) {
+        socket.send_to(boost::asio::buffer(out_message), get_next_server_endpoint());
+        len = this->receive(boost::asio::buffer(in_message), std::chrono::seconds(10), error);
+    }
+    std::unique_ptr<Message> response= std::make_unique<Message>();
+    response->deserialize_from(in_message);
+    while (response->proposal.value.client_once < client_op_id) {
+        std::size_t len = this->receive(boost::asio::buffer(in_message), std::chrono::seconds(10), error);
+        while (len != 0) {
+            socket.send_to(boost::asio::buffer(out_message), get_next_server_endpoint());
+            len = this->receive(boost::asio::buffer(in_message), std::chrono::seconds(10), error);
+        }
+        response->deserialize_from(in_message);
     }
 
-    return translate_message_operation_to_result(response_or_redirect->proposal.value.operation);
+    return translate_message_operation_to_result(response->proposal.value.operation);
 }

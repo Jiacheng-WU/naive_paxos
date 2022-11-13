@@ -17,7 +17,6 @@ Proposer::Proposer(Instance *inst) : instance(inst) {
 }
 
 std::uint32_t Proposer::get_next_proposal_number() {
-    std::lock_guard<std::mutex> lock(proposer_mutex);
     assert(this->instance->server->get_number_of_nodes() != 0);
     assert(this->current_proposal_number != 0);
 
@@ -34,6 +33,7 @@ std::unique_ptr<Message> Proposer::on_submit(std::unique_ptr<Message> submit) {
     }
 
     std::lock_guard<std::mutex> lock(proposer_mutex);
+
 
     // As we propose
     this->highest_accepted_proposal_number = 0; // Move to Initial State
@@ -55,6 +55,7 @@ std::unique_ptr<Message> Proposer::on_submit(std::unique_ptr<Message> submit) {
     std::unique_ptr<Message> prepare = std::move(submit);
     prepare->type = MessageType::PREPARE;
     prepare->proposal.number = proposal_number;
+    fmt::print("Start PREPARE\n");
     return std::move(prepare);
 }
 
@@ -155,9 +156,12 @@ void Proposer::prepare(std::unique_ptr<Message> prepare) {
     for(std::uint32_t node_id = 0; node_id < this->instance->server->get_number_of_nodes(); node_id++) {
         // We need to clone the unique_ptr<Message> and just send to all nodes;
         std::unique_ptr<Message> prepare_copy = prepare->clone();
+        fmt::print("Before SEND\n");
         std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint = this->instance->server->config->get_addr_by_id(node_id);
+        fmt::print("After SEND\n");
         this->instance->server->connect->do_send(std::move(prepare_copy), std::move(endpoint), do_nothing_handler);
     }
+
     this->instance->deadline_timer.cancel();
     this->instance->deadline_timer.expires_after(std::chrono::milliseconds(
             this->instance->server->config->after_prepare_milliseconds + get_random_number(0, 1000)));

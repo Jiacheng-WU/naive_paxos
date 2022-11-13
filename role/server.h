@@ -25,12 +25,14 @@ class PaxosServer {
             connect(std::make_unique<Connection>(socket)),
 //            random_resubmit_timer(socket.get_executor()),
             logger(std::make_unique<Logger>(config->get_acceptor_file_path(id), config->get_learner_file_path(id), this))
+
             {
         this->id = id;
 //        this->leader_id = 0;
         this->number_of_nodes = config->get_number_of_nodes();
         // this->submit_cmd_seq = 0;
         this->executed_cmd_seq = 0;
+        this->config = std::move(config);
     }
 
     ~PaxosServer() = default;

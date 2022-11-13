@@ -7,6 +7,7 @@
 #include "server.h"
 
 std::unique_ptr<Message> Acceptor::on_prepare(std::unique_ptr<Message> prepare) {
+    fmt::print("Accept instance {} proposal {}\n", this->instance->seq, prepare->proposal.number);
     std::lock_guard<std::mutex> lock(acceptor_mutex);
     if (prepare->proposal.number <= this->highest_prepare_proposal_number) {
         std::size_t prepare_proposal_number = prepare->proposal.number;
@@ -15,7 +16,7 @@ std::unique_ptr<Message> Acceptor::on_prepare(std::unique_ptr<Message> prepare) 
         denial->proposal.number = this->highest_prepare_proposal_number;
         denial->prepare_proposal_number = prepare_proposal_number;
         // Do not influence the value;
-        denial->from_id = this->instance->server->get_id();
+        // denial->from_id = this->instance->server->get_id();
         return std::move(denial);
     } else {
         // The order is important since we reuse the Message buffer
@@ -31,7 +32,7 @@ std::unique_ptr<Message> Acceptor::on_prepare(std::unique_ptr<Message> prepare) 
         promise->proposal.number = highest_accepted_proposal_number;
         promise->proposal.value = highest_accepted_proposal_value;
         promise->prepare_proposal_number = prepare_proposal_number;
-        promise->from_id = this->instance->server->get_id();
+        // promise->from_id = this->instance->server->get_id();
         return std::move(promise);
     }
 }
