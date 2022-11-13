@@ -135,7 +135,8 @@ void Proposer::accept(std::unique_ptr<Message> accept) {
     }
 
     this->instance->deadline_timer.cancel();
-    this->instance->deadline_timer.expires_after(std::chrono::seconds(this->instance->server->config->after_accept_seconds));
+    this->instance->deadline_timer.expires_after(std::chrono::milliseconds(
+            this->instance->server->config->after_accept_milliseconds + get_random_number(0, 1000)));
     this->instance->deadline_timer.async_wait(
             [this, old_accept = accept->clone()](const boost::system::error_code& error) mutable {
                 if(error) {
@@ -158,7 +159,8 @@ void Proposer::prepare(std::unique_ptr<Message> prepare) {
         this->instance->server->connect->do_send(std::move(prepare_copy), std::move(endpoint), do_nothing_handler);
     }
     this->instance->deadline_timer.cancel();
-    this->instance->deadline_timer.expires_after(std::chrono::seconds(this->instance->server->config->after_prepare_seconds));
+    this->instance->deadline_timer.expires_after(std::chrono::milliseconds(
+            this->instance->server->config->after_prepare_milliseconds + get_random_number(0, 1000)));
     this->instance->deadline_timer.async_wait(
             [this, old_prepare = prepare->clone()](const boost::system::error_code& error) mutable {
                 if(error) {

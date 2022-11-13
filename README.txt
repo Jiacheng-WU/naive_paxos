@@ -5,6 +5,12 @@ Team Members:
 
 Project Description:
 
+    * Leader Election:
+        - Default we will have 0 as the leader
+        - When it cannot receives heartbeat from the leader
+        - Then itself will wait for server_id * ROUND_INTERVAL to wait and try elect again
+
+
 Some Discussions:
 
     Suppose we have proposer P1, P2, P3 (If we use P means the alive distinguished leader)

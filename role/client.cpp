@@ -29,15 +29,10 @@ PaxosClient::op_result_type PaxosClient::lock_or_unlock(std::uint32_t object_id,
     socket.receive_from(boost::asio::buffer(in_message), udp_endpoint);
     std::unique_ptr<Message> response_or_redirect = std::make_unique<Message>();
     response_or_redirect->deserialize_from(in_message);
-    if (response_or_redirect->type == MessageType::REDIRECT) {
-        leader_server_id = response_or_redirect->leader_id;
-        socket.send_to(boost::asio::buffer(out_message), get_server_endpoint(leader_server_id));
-        socket.receive_from(boost::asio::buffer(in_message), udp_endpoint);
-        response_or_redirect->deserialize_from(in_message);
-    }
     while (response_or_redirect->proposal.value.client_once < client_op_id) {
         socket.receive_from(boost::asio::buffer(in_message), udp_endpoint);
         response_or_redirect->deserialize_from(in_message);
     }
+
     return translate_message_operation_to_result(response_or_redirect->proposal.value.operation);
 }

@@ -13,11 +13,14 @@
 #include <iostream>
 #include "message.h"
 #include "fmt/core.h"
-
+#include <random>
 
 inline constexpr const uint64_t unused_udp_ipv4_number = ~0ull;
 uint64_t get_uint64_from_udp_ipv4_endpoint(std::unique_ptr<boost::asio::ip::udp::endpoint>& endpoint);
 std::unique_ptr<boost::asio::ip::udp::endpoint> get_udp_ipv4_endpoint_from_uint64_t(uint64_t compressed);
+
+
+std::uint32_t get_random_number(std::uint32_t begin, std::uint32_t end);
 
 struct asio_handler_paras {
     boost::system::error_code ec;

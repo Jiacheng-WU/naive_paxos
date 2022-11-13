@@ -17,3 +17,10 @@ std::unique_ptr<boost::asio::ip::udp::endpoint> get_udp_ipv4_endpoint_from_uint6
     uint32_t port = compressed & 0xFFFFFFFF;
     return std::make_unique<boost::asio::ip::udp::endpoint>(boost::asio::ip::make_address_v4(ip), port);
 }
+
+std::uint32_t get_random_number(std::uint32_t begin, std::uint32_t end) {
+    std::random_device rd;
+    std::uniform_int_distribution<std::uint32_t> ud(begin,end);
+    std::mt19937 mt(rd());
+    return ud(mt);
+}
