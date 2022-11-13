@@ -35,7 +35,7 @@ void PaxosServer::dispatch_received_message(std::unique_ptr<Message> m_p, std::u
 void PaxosServer::dispatch_paxos_message(std::unique_ptr<Message> m_p,
                                          std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint,
                                          asio_handler_paras paras) {
-    assert(Config::server_id_to_map[m_p->from_id] == *endpoint);
+    // assert(Config::server_id_to_map[m_p->from_id] == *endpoint);
     uint32_t instance_seq = m_p->sequence;
     Instance* instance = instances.get_instance(instance_seq);
     switch (m_p->type) {

@@ -18,7 +18,7 @@ Proposer::Proposer(Instance *inst) : instance(inst) {
 
 std::uint32_t Proposer::get_next_proposal_number() {
     std::lock_guard<std::mutex> lock(proposer_mutex);
-    assert(this->number_of_nodes != 0);
+    assert(this->instance->server->get_number_of_nodes() != 0);
     assert(this->current_proposal_number != 0);
 
     this->current_proposal_number += this->instance->server->get_id();

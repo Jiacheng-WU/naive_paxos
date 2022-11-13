@@ -32,25 +32,30 @@ int main(int argc, char* argv[]) {
     }
 
     bool need_recovery = false;
-    if (argc == 3 || std::string(argv[2]) == "recovery") {
+    if (argc == 3 && std::string(argv[2]) == "recovery") {
         need_recovery = true;
     }
 
     boost::asio::io_context io_context;
+
+
 
     PaxosServer server(io_context, current_id, std::move(config));
     if (need_recovery) {
         server.recover();
     }
 
-    server.start();
 
-    boost::asio::signal_set signals(io_context, SIGINT);
-    signals.async_wait([&server, &io_context](const boost::system::error_code& error , int signal_number ) {
+    boost::asio::signal_set signals(io_context, SIGINT | SIGTERM);
+    signals.async_wait([&server, &io_context](const boost::system::error_code& error, int signal_number ) {
         server.stop();
         io_context.stop();
         exit(1);
     });
+
+
+    server.start();
+
 
     io_context.run();
 
