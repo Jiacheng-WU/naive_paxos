@@ -17,7 +17,7 @@ std::unique_ptr<Message> Learner::on_accepted(std::unique_ptr<Message> accepted)
     /*
      * If we have already learned consensus value from accepted
      */
-    if (learned_majority_consensus || accepted->proposal.number < this->highest_accepted_proposal_number) {
+    if (learned_majority_consensus || has_been_informed || accepted->proposal.number < this->highest_accepted_proposal_number) {
         return nullptr;
     }
 
@@ -59,9 +59,15 @@ void Learner::inform(std::unique_ptr<Message> inform) {
 std::unique_ptr<Message> Learner::on_inform(std::unique_ptr<Message> inform) {
     std::lock_guard<std::mutex> lock(learner_mutex);
     // Log State and
+//    if (has_been_informed) {
+//        return nullptr;
+//    }
     has_been_informed = true;
+    this->highest_accepted_proposal_number = inform->proposal.number;
+    this->highest_accepted_proposal_value = inform->proposal.value;
 
-
+    this->instance->server->logger->write_learner_log(this->instance->seq,
+                                                       {this->instance->seq, this->highest_accepted_proposal_number, this->highest_accepted_proposal_value});
     std::unique_ptr<Message> command = std::move(inform);
     command->type = MessageType::COMMAND;
     return std::move(command);

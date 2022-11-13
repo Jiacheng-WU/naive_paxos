@@ -13,8 +13,8 @@ int main(int argc, char* argv[]) {
 //    do_nothing_handler(nullptr, nullptr, {});
 
 
-    if (argc == 1 || argc >= 3) {
-        std::cout << fmt::format("{} {}\n", "program_name", "id");
+    if (argc == 1 || argc >= 4) {
+        std::cout << fmt::format("{} {} {}\n", "program_name", "id", "(recovery)");
         return 0;
     }
 
@@ -31,9 +31,18 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
+    bool need_recovery = false;
+    if (argc == 3 || std::string(argv[2]) == "recovery") {
+        need_recovery = true;
+    }
+
     boost::asio::io_context io_context;
 
     PaxosServer server(io_context, current_id, std::move(config));
+    if (need_recovery) {
+        server.recover();
+    }
+
     server.start();
 
     boost::asio::signal_set signals(io_context, SIGINT);

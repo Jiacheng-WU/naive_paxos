@@ -70,7 +70,7 @@ class PaxosClient {
         return lock_or_unlock(object_id, op_type::LOCK);
     }
 
-  private:
+//  private:
     uint8_t out_message[Message::size()];
     uint8_t in_message[Message::size()];
     boost::asio::ip::udp::socket socket;

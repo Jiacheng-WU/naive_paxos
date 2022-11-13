@@ -63,6 +63,8 @@ struct ProposalValue {
         UNLOCK_AGAIN, // unlock on a already unlocked object
     } operation = UNDEFINED;
     std::uint32_t object = 0;
+    std::uint64_t client_id = 0;
+    std::uint32_t client_once = 0;
 };
 // Specified proposal for lock service
 
@@ -90,11 +92,10 @@ struct Message {
          * In real, the client_id could at least be uint64_t with MAC and PORT
          **/
         std::uint32_t leader_id; // For Redirect Message
-        std::uint32_t client_ip; // For ipv4
     };
     Proposal proposal;
     union {
-        std::uint32_t additional_field_1 = 0;
+        std::uint32_t additional_field = 0;
         /**
          * For acceptor to identify which prepare_proposal_number
          * In fact, the acceptor can only promise to the corresponding prepare_proposal_number
@@ -107,11 +108,6 @@ struct Message {
          * But it may accelerate for the rejected message not avoid next round proposal
          */
         std::uint32_t accept_proposal_number;
-        std::uint32_t client_port; // For Client -> Server
-    };
-    union {
-        std::uint32_t additional_field_2 = 0;
-        std::uint32_t client_once;
     };
 
     [[nodiscard]] static consteval std::size_t size() {
@@ -126,8 +122,8 @@ struct Message {
         cloned->sequence = this->sequence;
         cloned->from_id = this->from_id;
         cloned->proposal = this->proposal;
-        cloned->additional_field_1 = this->additional_field_1;
-        cloned->additional_field_2 = this->additional_field_2;
+        cloned->additional_field = this->additional_field;
+        // cloned->additional_field_2 = this->additional_field_2;
         return std::move(cloned);
     }
 
@@ -159,5 +155,38 @@ struct MessageBuffer {
     std::uint8_t buffer[Message::size()];
 };
 
+
+struct AcceptorState {
+    std::uint32_t sequence;
+    std::uint32_t highest_prepare_proposal_number;
+    std::uint32_t highest_accepted_proposal_number;
+    ProposalValue highest_accepted_proposal_value;
+    [[nodiscard]] static consteval std::size_t size() {
+        return sizeof(Message);
+    }
+    void serialize_to(char buffer[size()]) {
+        memcpy(buffer, this, size());
+    }
+
+    void deserialize_from(char buffer[size()]) {
+        memcpy(this, buffer, size());
+    }
+};
+
+struct LearnerState {
+    std::uint32_t sequence;
+    std::uint32_t final_informed_proposal_number;
+    ProposalValue final_informed_proposal_value;
+    [[nodiscard]] static consteval std::size_t size() {
+        return sizeof(Message);
+    }
+    void serialize_to(char buffer[size()]) {
+        memcpy(buffer, this, size());
+    }
+
+    void deserialize_from(char buffer[size()]) {
+        memcpy(this, buffer, size());
+    }
+};
 
 #endif //PAXOS_MESSAGE_H

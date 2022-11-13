@@ -22,6 +22,9 @@ struct Config {
     std::uint32_t after_prepare_seconds = 5;
     std::uint32_t after_accept_seconds = 5;
 
+    std::filesystem::path get_acceptor_file_path(server_id_t server_id);
+    std::filesystem::path get_learner_file_path(server_id_t server_id);
+
     std::map<server_id_t, server_addr_t> server_id_to_addr_map;
 
     std::uint32_t get_number_of_nodes() const {

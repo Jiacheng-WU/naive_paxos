@@ -14,6 +14,11 @@
 #include "message.h"
 #include "fmt/core.h"
 
+
+inline constexpr const uint64_t unused_udp_ipv4_number = ~0ull;
+uint64_t get_uint64_from_udp_ipv4_endpoint(std::unique_ptr<boost::asio::ip::udp::endpoint>& endpoint);
+std::unique_ptr<boost::asio::ip::udp::endpoint> get_udp_ipv4_endpoint_from_uint64_t(uint64_t compressed);
+
 struct asio_handler_paras {
     boost::system::error_code ec;
     std::size_t length;

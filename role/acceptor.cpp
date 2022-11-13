@@ -20,6 +20,8 @@ std::unique_ptr<Message> Acceptor::on_prepare(std::unique_ptr<Message> prepare) 
     } else {
         // The order is important since we reuse the Message buffer
         this->highest_prepare_proposal_number = prepare->proposal.number;
+        this->instance->server->logger->write_acceptor_log(this->instance->seq,
+            {this->instance->seq, this->highest_prepare_proposal_number, this->highest_accepted_proposal_number, this->highest_accepted_proposal_value});
         // We need to record this promise message reply to which proposal numbered n.
         std::size_t prepare_proposal_number = prepare->proposal.number;
         // Modify Message
@@ -47,8 +49,11 @@ std::unique_ptr<Message> Acceptor::on_accept(std::unique_ptr<Message> accept) {
     } else {
         this->highest_accepted_proposal_number = accept->proposal.number;
         this->highest_accepted_proposal_value = accept->proposal.value;
-        std::size_t accept_proposal_number = accept->proposal.number;
 
+        this->instance->server->logger->write_acceptor_log(this->instance->seq,
+             {this->instance->seq, this->highest_prepare_proposal_number, this->highest_accepted_proposal_number, this->highest_accepted_proposal_value});
+
+        std::size_t accept_proposal_number = accept->proposal.number;
         std::unique_ptr<Message> accepted = std::move(accept);
         accept->type = MessageType::ACCEPTED;
         // Since it is accepted, it is not necessary to modify the proposal value or number

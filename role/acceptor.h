@@ -16,6 +16,12 @@ class Acceptor {
 
     Acceptor(Instance* inst):instance(inst) {}
 
+    void recover_from_state(AcceptorState state) {
+        this->highest_prepare_proposal_number = state.highest_prepare_proposal_number;
+        this->highest_accepted_proposal_number = state.highest_accepted_proposal_number;
+        this->highest_accepted_proposal_value = state.highest_accepted_proposal_value;
+    }
+
     std::unique_ptr<Message> on_prepare(std::unique_ptr<Message> prepare);
 
     void promise(std::unique_ptr<Message> promise);

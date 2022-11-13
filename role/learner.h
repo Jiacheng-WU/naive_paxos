@@ -18,6 +18,12 @@ class Learner {
 
     Learner(Instance* inst);
 
+    void recover_from_state(LearnerState state) {
+        this->highest_accepted_proposal_number = state.final_informed_proposal_number;
+        this->highest_accepted_proposal_value = state.final_informed_proposal_value;
+        learned_majority_consensus = true;
+        has_been_informed = true;
+    }
     // For distinguished learner
     std::unique_ptr<Message> on_accepted(std::unique_ptr<Message> accepted);
 

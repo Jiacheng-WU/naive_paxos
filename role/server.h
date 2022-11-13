@@ -9,6 +9,7 @@
 #include "instance.h"
 #include "fmt/core.h"
 #include "config.h"
+#include "logger.h"
 #include <iostream>
 #include <unordered_map>
 #include <queue>
@@ -23,7 +24,8 @@ class PaxosServer {
                                                               config->get_addr_by_id(id)->port())),
             connect(std::make_unique<Connection>(socket)),
             leader_heartbeat_timer(socket.get_executor()),
-            nonleader_heartbeat_timer(socket.get_executor())
+            nonleader_heartbeat_timer(socket.get_executor()),
+            logger(std::make_unique<Logger>(config->get_acceptor_file_path(id), config->get_learner_file_path(id), this))
             {
         this->id = id;
         this->leader_id = 0;
@@ -48,6 +50,8 @@ class PaxosServer {
 
     }
 
+
+    void recover();
 
     void stop() {
         socket.close();
@@ -123,7 +127,7 @@ class PaxosServer {
 
 
 
-    void try_execute_command_and_response(std::unique_ptr<Message> command);
+    std::vector<std::unique_ptr<Message>> try_execute_commands(std::unique_ptr<Message> command);
 
     std::unique_ptr<Message> on_submit_of_server(std::unique_ptr<Message> submit);
 
@@ -132,14 +136,16 @@ class PaxosServer {
     std::unique_ptr<Config> config;
     boost::asio::steady_timer leader_heartbeat_timer; // For send
     boost::asio::steady_timer nonleader_heartbeat_timer; // For check
+    std::unique_ptr<Logger> logger;
+    Instances instances;
   private:
 
     std::unique_ptr<Message> execute_command(std::unique_ptr<Message> command);
-    void response(std::unique_ptr<Message> response);
+    std::unique_ptr<Message> response(std::unique_ptr<Message> response);
 
     std::uint32_t id;
     std::uint32_t number_of_nodes;
-    Instances instances;
+
 
 
 //    std::uint32_t get_instance_sequence() {
@@ -154,7 +160,7 @@ class PaxosServer {
     using object_id_t = std::uint32_t;
     using lock_client_id_t = std::uint64_t;
 
-    std::unordered_map<std::uint32_t, std::unique_ptr<boost::asio::ip::udp::endpoint>> seq_to_clients;
+    std::unordered_map<std::uint32_t, ProposalValue> seq_to_expected_values;
 
     std::unordered_map<object_id_t, lock_client_id_t> object_lock_state;
 

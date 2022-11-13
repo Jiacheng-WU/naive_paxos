@@ -16,6 +16,7 @@ include_directories(util)
 include_directories(role)
 
 add_subdirectory(third_party/fmt-9.1.0)
+include_directories(third_party/fmt-9.1.0/include)
 
 add_executable(paxos_server
         server_main.cpp
@@ -33,5 +34,6 @@ target_link_libraries(paxos_server ${Boost_LIBRARIES} fmt::fmt)
 add_executable(paxos_client
         client_main.cpp
         role/client.cpp
-        role/config.cpp)
+        role/config.cpp
+        util/network.cpp)
 target_link_libraries(paxos_client ${Boost_LIBRARIES} fmt::fmt)

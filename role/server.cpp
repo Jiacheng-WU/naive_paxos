@@ -88,7 +88,31 @@ void PaxosServer::dispatch_paxos_message(std::unique_ptr<Message> m_p,
         case MessageType::INFORM: {
             /** Other Learners Recv INFORM from Distinguished Learner **/
             std::unique_ptr<Message> command = instance->learner.on_inform(std::move(m_p));
-            this->try_execute_command_and_response(std::move(command));
+            std::vector<std::unique_ptr<Message>> executed_commands = this->try_execute_commands(std::move(command));
+            if (id == leader_id && !executed_commands.empty()) {
+                for(auto&& cmd: executed_commands) {
+                    std::unique_ptr<Message> command = std::move(cmd);
+                    std::unique_ptr<Message> resubmit = this->response(std::move(command));
+                    if (resubmit != nullptr) {
+                        std::unique_ptr<Message> submit_or_redirect = this->on_submit_of_server(std::move(resubmit));
+                        if (submit_or_redirect->type == MessageType::REDIRECT) {
+                            std::unique_ptr<Message> redirect = std::move(submit_or_redirect);
+                            connect->do_send(std::move(redirect),
+                                             std::move(get_udp_ipv4_endpoint_from_uint64_t(resubmit->proposal.value.client_id)),
+                                             do_nothing_handler);
+                        } else {
+                            std::unique_ptr<Message> submit = std::move(submit_or_redirect);
+                            // We cannot modify the client_id since it is still the original one
+                            uint32_t instance_seq = submit->sequence;
+                            Instance *instance = instances.get_instance(instance_seq);
+                            // We need to reemplace with a newer sequence number;
+                            seq_to_expected_values.emplace(instance_seq, submit->proposal.value);
+                            std::unique_ptr<Message> prepare = instance->proposer.on_submit(std::move(submit));
+                            instance->proposer.prepare(std::move(prepare));
+                        }
+                    }
+                }
+            }
             break;
         }
         case MessageType::LEARN: {
@@ -113,9 +137,11 @@ void PaxosServer::dispatch_server_message(std::unique_ptr<Message> m_p,
                 connect->do_send(std::move(redirect), std::move(endpoint), do_nothing_handler);
             } else {
                 std::unique_ptr<Message> submit = std::move(submit_or_redirect);
+                // We need to set client_id and maintain seq with proposal relation
+                submit->proposal.value.client_id = get_uint64_from_udp_ipv4_endpoint(endpoint);
                 uint32_t instance_seq = submit->sequence;
                 Instance* instance = instances.get_instance(instance_seq);
-                seq_to_clients.emplace(instance_seq, std::move(endpoint));
+                seq_to_expected_values.emplace(instance_seq, submit->proposal.value);
                 std::unique_ptr<Message> prepare = instance->proposer.on_submit(std::move(submit));
                 instance->proposer.prepare(std::move(prepare));
             }
@@ -148,14 +174,7 @@ std::unique_ptr<Message> PaxosServer::on_submit_of_server(std::unique_ptr<Messag
 
 }
 
-static uint64_t get_uint64_from_udp_ipv4_endpoint(std::unique_ptr<boost::asio::ip::udp::endpoint>& endpoint) {
-    uint32_t ip = endpoint->address().to_v4().to_uint();
-    uint32_t port = endpoint->port();
-    uint64_t result = uint64_t(ip) << 32 | port;
-    return result;
-}
 
-static uint64_t unused_udp_ipv4_number = ~0ull;
 
 std::unique_ptr<Message> PaxosServer::execute_command(std::unique_ptr<Message> command) {
     ProposalValue cmd = command->proposal.value;
@@ -185,7 +204,7 @@ std::unique_ptr<Message> PaxosServer::execute_command(std::unique_ptr<Message> c
             if (!object_lock_state.contains(object_id)) {
                 object_lock_state.insert({object_id, unused_udp_ipv4_number});
             }
-            lock_client_id_t current_client_id = get_uint64_from_udp_ipv4_endpoint(seq_to_clients[response->sequence]);
+            lock_client_id_t current_client_id = response->proposal.value.client_id;
             lock_client_id_t locked_client_id = object_lock_state[object_id];
             if (locked_client_id == unused_udp_ipv4_number) {
                 object_lock_state[object_id] = current_client_id;
@@ -205,7 +224,7 @@ std::unique_ptr<Message> PaxosServer::execute_command(std::unique_ptr<Message> c
             if (!object_lock_state.contains(object_id)) {
                 object_lock_state.insert({object_id, unused_udp_ipv4_number});
             }
-            lock_client_id_t current_client_id = get_uint64_from_udp_ipv4_endpoint(seq_to_clients[response->sequence]);
+            lock_client_id_t current_client_id = response->proposal.value.client_id;
             lock_client_id_t locked_client_id = object_lock_state[object_id];
             if (locked_client_id == unused_udp_ipv4_number) {
                 response->proposal.value.operation = ProposalValue::UNLOCK_AGAIN;
@@ -228,49 +247,73 @@ std::unique_ptr<Message> PaxosServer::execute_command(std::unique_ptr<Message> c
     return nullptr;
 }
 
-void PaxosServer::response(std::unique_ptr<Message> response) {
+std::unique_ptr<Message> PaxosServer::response(std::unique_ptr<Message> response) {
     std::lock_guard<std::mutex> lock(server_state_mutex);
-    std::unique_ptr<boost::asio::ip::udp::endpoint> client_endpoints = std::move(seq_to_clients.at(response->sequence));
-    seq_to_clients.erase(response->sequence);
+
+    std::unique_ptr<Message> resubmit = nullptr;
+    if (seq_to_expected_values.contains(response->sequence)) {
+        ProposalValue expected_value = seq_to_expected_values[response->sequence];
+        if (expected_value.client_id != response->proposal.value.client_id ||
+            expected_value.client_once != response->proposal.value.client_once) {
+            resubmit = response->clone();
+            resubmit->proposal.value = expected_value;
+        }
+        seq_to_expected_values.erase(response->sequence);
+    }
+
+    std::unique_ptr<boost::asio::ip::udp::endpoint> client_endpoints = get_udp_ipv4_endpoint_from_uint64_t(response->proposal.value.client_id);
     connect->do_send(std::move(response), std::move(client_endpoints), do_nothing_handler);
+
+    return resubmit;
 }
 
-void PaxosServer::try_execute_command_and_response(std::unique_ptr<Message> command) {
+// The response have already done by the main learned once it find it should reponse
+std::vector<std::unique_ptr<Message>> PaxosServer::try_execute_commands(std::unique_ptr<Message> command) {
     // TODO: submit command to a minheap. and execute consecutive command if a hole is filled
-    std::unique_lock<std::mutex> lock(server_state_mutex);
+    std::lock_guard<std::mutex> lock(server_state_mutex);
 
+    std::vector<std::unique_ptr<Message>> executed_commands;
     if (command->sequence == executed_cmd_seq + 1) {
         std::unique_ptr<Message> response = execute_command(std::move(command));
-        executed_cmd_seq++;
-        lock.unlock();
         if (response != nullptr) {
-            this->response(std::move(response));
+            executed_commands.emplace_back(std::move(response));
         }
+        executed_cmd_seq++;
+//        if (response != nullptr) {
+//            this->response(std::move(response));
+//        }
 
         // Try execute the following command until we read a hole
         while(true) {
-            lock.lock();
             std::size_t current_wait_sequence = (*cmd_min_set.begin())->sequence;
             if (current_wait_sequence == executed_cmd_seq + 1) {
                 std::unique_ptr<Message> next_command = std::move(cmd_min_set.extract(cmd_min_set.begin()).value());
                 std::unique_ptr<Message> response = execute_command(std::move(command));
                 executed_cmd_seq++;
-                lock.unlock();
-                if(response != nullptr) {
-                    this->response(std::move(response));
+                if (response != nullptr) {
+                    executed_commands.emplace_back(std::move(response));
                 }
             } else {
-                lock.unlock();
                 break;
             }
         }
     } else if (command->sequence <= executed_cmd_seq) {
         // Ignore this case
-        lock.unlock();
     } else {
         // Here is a hole
         cmd_min_set.emplace(std::move(command));
-        lock.unlock();
+    }
+    return executed_commands;
+}
+
+void PaxosServer::recover()  {
+    std::vector<std::uint32_t> hole_sequence;
+    std::uint32_t max_sequence;
+    bool need_recover = this->logger->recover_from_log(hole_sequence, max_sequence);
+    if (!need_recover) {
+        return;
+    } else {
+        // Propose no ops to hole_sequence and to learn server_id;
     }
 }
 

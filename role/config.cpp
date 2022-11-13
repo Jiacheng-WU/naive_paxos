@@ -3,7 +3,7 @@
 //
 
 #include "config.h"
-
+#include "fmt/core.h"
 bool Config::load_config(std::filesystem::path json_file) {
     return false;
 }
@@ -18,4 +18,12 @@ bool Config::load_config() {
     };
     number_of_nodes = server_id_to_addr_map.size();
     return true;
+}
+
+std::filesystem::path Config::get_learner_file_path(Config::server_id_t server_id) {
+    return std::filesystem::path(fmt::format("./server{}_learner.log", server_id));
+}
+
+std::filesystem::path Config::get_acceptor_file_path(Config::server_id_t server_id) {
+    return std::filesystem::path(fmt::format("./server{}_acceptor.log", server_id));
 }
