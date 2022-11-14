@@ -5,8 +5,107 @@ Team Members:
 
 Project Description:
 
-    The configuration files is hardcoded in role/config.cpp load_config
+    * Build Requirements:
+        * Configuration:
+            - The configuration files is hardcoded in role/config.cpp load_config function
+            - It is also easy to support read json config file, which is not the important
+            - We could support it before the demo!!
+        * Tools and Libs
+            - CMake : Ubuntu (snap install cmake), MacOS (brew install cmake)
+            - Boost : Ubuntu (apt-get install libboost-all-dev) , MacOS (brew install boost)
+            - Clang/GCC : should support C++ 20, LLVM/Clang 14.0 or higher is better!
+        * Build Steps
+            - mkdir build
+            - cd build
+            - cmake -DCMAKE_BUILD_TYPE=(Debug|Release) -DCMAKE_GENERATOR=Ninja [-DCMAKE_CXX_COMPILER=clang++{>=14} -DCMAKE_CXX_COMPILER=clang{>=14}} ..
+            - ninja
+        * Output
+            - paxos_server (The Paxos Server runs paxos instance)
+            - paxos_client (Example Client to issue requests)
 
+    * Run Specifications:
+        * For Server
+            - We should specify the server_id for the server
+            - ./paxos_server {id}
+            - Server started with specific id will use the ip and port specified in config.cpp
+        * For Client
+            - ./paxos_client
+            - Just run since it is just an example displayed to issue requests
+        * For Recovery
+            - ./paxos_server {id} recovery
+            - Add "recovery" after command
+
+
+    * Assumptions:
+        * Simplicity Discovery:
+            - The identity of the Paxos group members is hardcoded at the clients in the code or through a configuration file.
+        * Clients will be almost well-behaved:
+            - the client could fail after acquiring a lock.
+            - as long as it would restart with same ip and port
+            - then the client could unlock the previously locked item
+            - The deadlock somehow can be handled by send LOCK_AGAIN
+        * Not consider the atmost-once or atleast-once semantics
+            - even though we have already embedded at client_once in COMMANDS
+            - but due to time limits, just ignore it here
+
+    * Bonus Points
+        * Recovery:
+            - Use a seperator log for acceptor and learner
+            - Use flush rather than fdatasync to sync due to it is hard to obtain fd from fstream
+            - Though I knew it is better to use fdatasync to ensure flush to disk instead of os
+        * Resending Message:
+            - Add timeout for the proposer
+            - the proposer will try to resend prepare/accept if it don't received majority message for a long time.
+        * Deadlock:
+            - We would like to return LOCK_AGAIN state to identify one client try lock again.
+
+Implementation:
+    * No Leader/Master
+        - No Leader Election Procedure
+        - Each server could serve client requests, submit it to paxos group and responds the request.
+    * Three roles in a single entity
+        - We have a Instance contains Proposer, Acceptor and Learner
+        - Thus, Proposer sometimes could directly read the corresponding Learner information
+        - Some Optimization:
+            * Proposer I don't send PREPARE/ACCEPT if the Learner I already learned the current sequence is chosen
+            * Acceptor I inform other Proposer J with INFORM message if the Learner I has learned chosen value
+    * Asynchronous Message Event Mechanism
+        - Use ASIO framework and callbacks to handle concurrent client requests
+        - Each arrived Message would trigger a specific event to propose
+        - Sometimes need lock to maintain the critical section
+            - Say if the instance would have two massage arrives at same time, and may have conflicts to process
+            - But if io_context is single_thread, it may be not necessary to hold a lock.
+    * Request resubmit Mechanism
+        - Each client requests would be assigned to Instance with Sequence SEQ
+        - But Paxos may finally not choose the client requests as value, (Due to other higher proposal number)
+        - Then how to tackle especially in Asynchronous manner?
+            - We keep the relation between SEQ and submitted value (client requests/commands) in unordered_map
+            - After we could execute the value for current SEQ
+            - We will first retrieve the original value of this SEQ from the above relation
+            - And compare them if they are totally same
+                - if no , it means the submitted value is not chosen for current SEQ, we resubmit it
+                - if yes, then we could simply dropped the relation (SEQ->value) and respond to the client
+    * Command Execution
+        - How to Know when a command is chosen and when the command could be executed.
+            - Additional INFORM message and timeout mechanism to ensure correctness and efficiency.
+            - When the Learner received majority accepted message on the latest proposal number
+            - Then this Learner knows this PAXOS instance achieved consensus, it just send INFORM message
+            - When other learner received the INFORM, it also know we achieved consensus
+            - Next, they just put the value (commands) into a min heap of server (less sequence is in the front)
+            - Each server also maintain the current executed SEQ, and to find if there is next SEQ to execute
+            - One command can be executed (and therefore repond to clients) only if the previous SEQ all executed
+            - Say even SEQ 5 is acheived consensus, it still need to wait SEQ 1,2,3,4 to achieve consensus and execute.
+            - We just use a min-heap to maintain accepted but cannot executed values and also deduplicated
+            - Then once a new value is put into the heap, we just detect whether the front SEQ is executed SEQ + 1
+            - If no, we just ignore. Otherwise, we could executed the front SEQ, remove it, update executed SEQ and detect recursively
+    * Concise Structure
+        - Only use 10 * sizeof(std::uint32_t) for each message, which is short and faster
+            - Use enum MessageType and enum OperationType to distinguish
+            - Use same structure for both client and server message
+            - But reuse some fields in different situations.
+        - Only maintain necessary information on each Proposer, Acceptor, Learner
+            - If some information is common, then put these information into the Instance or Server
+            - Proposer/Acceptor/Learner just keep a necessary pointer to Instance (and Server)
 
 
 Some Discussions:
@@ -120,4 +219,21 @@ Some Discussions:
         - But we do an optimization by delaying the updating infos until received new ACCEPTED
         - rather than the PREPARE!
 
-    *
+    * We only need inform once or even not to inform
+        - In fact, if current sequence is already chosen, but the Server didn't knew
+        - It would choose a new proposal number to PREPARE, and then it finally will get the value
+        - So it is no even necessary to inform others, but we just optimized for it
+            - use extra one round to notify all the consensus value.
+            - avoid the duplicated PREPARE/ACCEPT by making acceptor reply INFORM.
+
+    * Leader Election in Paxos is really a complex problems
+        - Some implementation would like to use redirect message to tell clients to resent to server
+        - It would cause the specific leader handle too many requests
+        - Even though we could apply optimizations to avoid PREPARE and ACCEPT message
+        - However, in this case, we should tackle with complex situations where
+            - What if the leader failed?
+            - What if two leader is electing?
+            - Is it need to log leader election on Paxos Replicated Log?
+                - If need, then how to decide the specific sequence for such election message
+                - We will find at that time, we still need the basic to process.
+        - In fact, Raft paper is better to read and just figure out the above problems by its protocol.
