@@ -15,14 +15,14 @@ class Instance;
 
 class Learner {
   public:
-
+    friend class Instance;
     Learner(Instance* inst);
 
     void recover_from_state(LearnerState state) {
         this->highest_accepted_proposal_number = state.final_informed_proposal_number;
         this->highest_accepted_proposal_value = state.final_informed_proposal_value;
         learned_majority_consensus = true;
-        has_been_informed = true;
+        informed = true;
     }
     // For distinguished learner
     std::unique_ptr<Message> on_accepted(std::unique_ptr<Message> accepted);
@@ -41,6 +41,22 @@ class Learner {
         // std::lock_guard<std::mutex> lock(learner_mutex);
         return learned_majority_consensus;
     }
+
+    bool has_been_informed() {
+        // std::lock_guard<std::mutex> lock(learner_mutex);
+        return informed;
+    }
+
+    std::uint32_t get_learned_proposal_number () {
+        assert((learned_majority_consensus || informed) && "Not Informed");
+        return highest_accepted_proposal_number;
+    }
+
+    ProposalValue get_learned_proposal_value () {
+        assert((learned_majority_consensus || informed) && "Not Informed");
+        return highest_accepted_proposal_value;
+    }
+
   private:
 
     mutable std::mutex learner_mutex;
@@ -49,7 +65,7 @@ class Learner {
     ProposalValue highest_accepted_proposal_value {};
     boost::dynamic_bitset<std::uint8_t> current_accepted_acceptors;
     bool learned_majority_consensus;
-    bool has_been_informed;
+    bool informed;
 
     Instance* instance;
 };

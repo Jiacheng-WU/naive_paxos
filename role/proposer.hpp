@@ -16,7 +16,7 @@ class Instance;
 
 class Proposer {
 
-
+    friend class Instance;
   private:
     std::uint32_t get_next_proposal_number();
   public:

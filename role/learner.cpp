@@ -8,7 +8,7 @@
 Learner::Learner(Instance *inst): instance(inst) {
     current_accepted_acceptors.resize(this->instance->server->get_number_of_nodes(), false);
     learned_majority_consensus = false;
-    has_been_informed = false;
+    informed = false;
 }
 
 
@@ -21,7 +21,7 @@ std::unique_ptr<Message> Learner::on_accepted(std::unique_ptr<Message> accepted)
     /*
      * If we have already learned consensus value from accepted
      */
-    if (learned_majority_consensus || has_been_informed || accepted->proposal.number < this->highest_accepted_proposal_number) {
+    if (learned_majority_consensus || informed || accepted->proposal.number < this->highest_accepted_proposal_number) {
         return nullptr;
     }
 
@@ -82,16 +82,18 @@ std::unique_ptr<Message> Learner::on_inform(std::unique_ptr<Message> inform) {
                                             inform->sequence, this->instance->server->get_id());
     std::lock_guard<std::mutex> lock(learner_mutex);
     // Log State and
-    if (has_been_informed) {
+    if (informed) {
         return nullptr;
     }
 
-    has_been_informed = true;
+    informed = true;
     this->highest_accepted_proposal_number = inform->proposal.number;
     this->highest_accepted_proposal_value = inform->proposal.value;
 
     this->instance->server->logger->write_learner_log(this->instance->seq,
                                                        {this->instance->seq, this->highest_accepted_proposal_number, this->highest_accepted_proposal_value});
+
+    this->instance->deadline_timer.cancel();
     std::unique_ptr<Message> command = std::move(inform);
     command->type = MessageType::COMMAND;
     return std::move(command);

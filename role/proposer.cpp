@@ -28,7 +28,8 @@ std::uint32_t Proposer::get_next_proposal_number() {
 // submit->seq is set before
 std::unique_ptr<Message> Proposer::on_submit(std::unique_ptr<Message> submit) {
 
-    if (this->instance->learner.get_learned_majority_consensus()) {
+    if (this->instance->learner.get_learned_majority_consensus() ||
+        this->instance->learner.has_been_informed()) {
         return nullptr;
     }
 
@@ -169,7 +170,9 @@ void Proposer::accept(std::unique_ptr<Message> accept) {
                                                         client_endpoint->port(),
                                                         resubmit->proposal.value.client_once);
                 std::unique_ptr<Message> prepare = this->instance->proposer.on_submit(std::move(resubmit));
-                instance->proposer.prepare(std::move(prepare));
+                if (prepare != nullptr) {
+                    instance->proposer.prepare(std::move(prepare));
+                }
             });
 }
 
@@ -210,6 +213,8 @@ void Proposer::prepare(std::unique_ptr<Message> prepare) {
                                                         client_endpoint->port(),
                                                         resubmit->proposal.value.client_once);
                 std::unique_ptr<Message> prepare = this->instance->proposer.on_submit(std::move(resubmit));
-                instance->proposer.prepare(std::move(prepare));
+                if (prepare != nullptr) {
+                    instance->proposer.prepare(std::move(prepare));
+                }
     });
 }
