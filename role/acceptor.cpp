@@ -7,7 +7,6 @@
 #include "server.h"
 
 std::unique_ptr<Message> Acceptor::on_prepare(std::unique_ptr<Message> prepare) {
-    fmt::print("Accept instance {} proposal {}\n", this->instance->seq, prepare->proposal.number);
     std::lock_guard<std::mutex> lock(acceptor_mutex);
     if (prepare->proposal.number <= this->highest_prepare_proposal_number) {
         std::size_t prepare_proposal_number = prepare->proposal.number;
@@ -19,6 +18,7 @@ std::unique_ptr<Message> Acceptor::on_prepare(std::unique_ptr<Message> prepare) 
         // denial->from_id = this->instance->server->get_id();
         return std::move(denial);
     } else {
+        fmt::print("Before Accept instance {} proposal {}\n", this->instance->seq, prepare->proposal.number);
         // The order is important since we reuse the Message buffer
         this->highest_prepare_proposal_number = prepare->proposal.number;
         this->instance->server->logger->write_acceptor_log(this->instance->seq,
@@ -32,6 +32,8 @@ std::unique_ptr<Message> Acceptor::on_prepare(std::unique_ptr<Message> prepare) 
         promise->proposal.number = highest_accepted_proposal_number;
         promise->proposal.value = highest_accepted_proposal_value;
         promise->prepare_proposal_number = prepare_proposal_number;
+        fmt::print("After instance {} proposal {}\n", this->instance->seq, promise->proposal.number);
+
         // promise->from_id = this->instance->server->get_id();
         return std::move(promise);
     }
@@ -40,6 +42,7 @@ std::unique_ptr<Message> Acceptor::on_prepare(std::unique_ptr<Message> prepare) 
 
 std::unique_ptr<Message> Acceptor::on_accept(std::unique_ptr<Message> accept) {
     std::lock_guard<std::mutex> lock(acceptor_mutex);
+
     if(accept->proposal.number < highest_prepare_proposal_number) {
         std::size_t accept_proposal_number = accept->proposal.number;
         std::unique_ptr<Message> rejected = std::move(accept);
@@ -48,6 +51,7 @@ std::unique_ptr<Message> Acceptor::on_accept(std::unique_ptr<Message> accept) {
         rejected->accept_proposal_number = accept_proposal_number;
         return std::move(rejected);
     } else {
+        fmt::print("Before accepted on accept\n");
         this->highest_accepted_proposal_number = accept->proposal.number;
         this->highest_accepted_proposal_value = accept->proposal.value;
 
@@ -56,9 +60,10 @@ std::unique_ptr<Message> Acceptor::on_accept(std::unique_ptr<Message> accept) {
 
         std::size_t accept_proposal_number = accept->proposal.number;
         std::unique_ptr<Message> accepted = std::move(accept);
-        accept->type = MessageType::ACCEPTED;
+        accepted->type = MessageType::ACCEPTED;
         // Since it is accepted, it is not necessary to modify the proposal value or number
         accepted->accept_proposal_number = accept_proposal_number;
+        fmt::print("After accepted on accept\n");
         return std::move(accepted);
     }
 }
@@ -67,6 +72,7 @@ void Acceptor::promise(std::unique_ptr<Message> promise) {
     auto endpoint = this->instance->server->config->get_addr_by_id(promise->from_id);
     promise->from_id = this->instance->server->get_id();
     this->instance->server->connect->do_send(std::move(promise), std::move(endpoint), do_nothing_handler);
+    fmt::print("After Promise\n");
 }
 
 void Acceptor::denial(std::unique_ptr<Message> denial) {

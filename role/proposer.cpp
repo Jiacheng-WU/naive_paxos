@@ -63,6 +63,8 @@ std::unique_ptr<Message> Proposer::on_submit(std::unique_ptr<Message> submit) {
  * Return nullptr if do nothing
  */
 std::unique_ptr<Message> Proposer::on_promise(std::unique_ptr<Message> promise)  {
+    fmt::print("Before On Promise\n");
+
     std::lock_guard<std::mutex> lock(proposer_mutex);
     // We use prepare_proposal_number to specify the proposal number in PREPARE
     // while the proposal.number is the acceptor's largest number
@@ -79,7 +81,7 @@ std::unique_ptr<Message> Proposer::on_promise(std::unique_ptr<Message> promise) 
     }
 
     current_promised_acceptors.set(promise->from_id);
-
+    fmt::print("After On Promise\n");
     // Majority
     if(current_promised_acceptors.count() * 2 > this->instance->server->get_number_of_nodes()) {
         have_promised = true;

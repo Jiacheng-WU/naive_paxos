@@ -53,6 +53,7 @@ void PaxosServer::dispatch_paxos_message(std::unique_ptr<Message> m_p,
             if (accept != nullptr) {
                 instance->proposer.accept(std::move(accept));
             }
+            fmt::print("After Send Accept\n");
             // We need timeout mechanisms
             break;
         }
@@ -78,6 +79,7 @@ void PaxosServer::dispatch_paxos_message(std::unique_ptr<Message> m_p,
             if (inform != nullptr) {
                 // Over a majority of acceptor achieve consensus
                 instance->learner.inform(std::move(inform));
+                fmt::print("After inform\n");
             }
             break;
         }

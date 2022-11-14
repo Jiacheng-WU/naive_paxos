@@ -36,7 +36,7 @@ class Learner {
     }
 
     bool get_learned_majority_consensus() {
-        std::lock_guard<std::mutex> lock(learner_mutex);
+        // std::lock_guard<std::mutex> lock(learner_mutex);
         return learned_majority_consensus;
     }
   private:

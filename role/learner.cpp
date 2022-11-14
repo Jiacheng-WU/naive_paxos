@@ -21,6 +21,7 @@ std::unique_ptr<Message> Learner::on_accepted(std::unique_ptr<Message> accepted)
         return nullptr;
     }
 
+    fmt::print("Before on accepted\n");
     if (accepted->proposal.number > this->highest_accepted_proposal_number) {
         this->highest_accepted_proposal_number = accepted->proposal.number;
         this->highest_accepted_proposal_value = accepted->proposal.value;
@@ -30,6 +31,7 @@ std::unique_ptr<Message> Learner::on_accepted(std::unique_ptr<Message> accepted)
     // Now accepted->proposal.number > this->highest_accepted_proposal_number
     this->current_accepted_acceptors.set(accepted->from_id);
     if (this->current_accepted_acceptors.count() * 2 > this->instance->server->get_number_of_nodes()) {
+        fmt::print("Has Accepted Consensus\n");
         learned_majority_consensus = true;
         std::unique_ptr<Message> inform = std::move(accepted);
         inform->type = MessageType::INFORM;
@@ -47,21 +49,23 @@ std::unique_ptr<Message> Learner::on_accepted(std::unique_ptr<Message> accepted)
 
 void Learner::inform(std::unique_ptr<Message> inform) {
     inform->from_id = this->instance->server->get_id();
-
+    fmt::print("Before inform\n");
     for(std::uint32_t node_id = 0; node_id < this->instance->server->get_number_of_nodes(); node_id++) {
         // We need to clone the unique_ptr<Message> and just send to all nodes;
-        std::unique_ptr<Message> prepare_copy = inform->clone();
+        std::unique_ptr<Message> inform_copy = inform->clone();
         std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint = this->instance->server->config->get_addr_by_id(node_id);
-        this->instance->server->connect->do_send(std::move(prepare_copy), std::move(endpoint), do_nothing_handler);
+        this->instance->server->connect->do_send(std::move(inform_copy), std::move(endpoint), do_nothing_handler);
     }
 }
 
 std::unique_ptr<Message> Learner::on_inform(std::unique_ptr<Message> inform) {
+    fmt::print("Before on inform\n");
     std::lock_guard<std::mutex> lock(learner_mutex);
     // Log State and
 //    if (has_been_informed) {
 //        return nullptr;
 //    }
+
     has_been_informed = true;
     this->highest_accepted_proposal_number = inform->proposal.number;
     this->highest_accepted_proposal_value = inform->proposal.value;
