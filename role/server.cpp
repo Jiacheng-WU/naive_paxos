@@ -185,7 +185,7 @@ void PaxosServer::dispatch_server_message(std::unique_ptr<Message> m_p,
             do {
                 std::unique_ptr<Message> submit = this->on_submit_of_server(m_p->clone());
                 submit->proposal.value.client_id = get_uint64_from_udp_ipv4_endpoint(endpoint);
-                
+
                 BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Recv Submit {} {} from Client {}:{} {}\n",
                                                         submit->sequence, this->get_id(),
                                                         magic_enum::enum_name(submit->proposal.value.operation),
@@ -398,11 +398,18 @@ std::vector<std::unique_ptr<Message>> PaxosServer::try_execute_commands(std::uni
 
 void PaxosServer::recover()  {
     std::vector<std::uint32_t> hole_sequence;
-    std::uint32_t max_sequence;
-    bool need_recover = this->logger->recover_from_log(hole_sequence, max_sequence);
-    if (!need_recover) {
-        return;
-    } else {
+    std::uint32_t min_sequence, max_sequence;
+    bool need_recover = this->logger->recover_from_log(hole_sequence, min_sequence, max_sequence);
+    if (need_recover) {
+        for(std::size_t i = 1; i <= min_sequence; i++) {
+            std::unique_ptr<Message> command = std::make_unique<Message>();
+            command->sequence = i;
+            command->proposal.number = this->instances.get_instance(i)->learner.get_learned_proposal_number();
+            command->proposal.value = this->instances.get_instance(i)->learner.get_learned_proposal_value();
+            std::unique_ptr<Message> response = this->execute_command(std::move(command));
+        }
+        BOOST_LOG_TRIVIAL(info) << fmt::format("Server {} : Minimum Consecutive Commands Sequence {}\n", id, min_sequence);
+        this->executed_cmd_seq = min_sequence;
         // Propose no ops to hole_sequence and to learn server_id;
     }
 }

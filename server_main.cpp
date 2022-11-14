@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
         need_recovery = true;
     }
 
-    BOOST_LOG_TRIVIAL(debug) << fmt::format("Server {} {}\n", current_id, need_recovery? "recovery": "no recovery");
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("Server {} : {}\n", current_id, need_recovery? "recovery": "no recovery");
 
     boost::asio::io_context io_context;
 
@@ -49,13 +49,13 @@ int main(int argc, char* argv[]) {
     signals.async_wait([&server, &io_context](const boost::system::error_code& error, int signal_number ) {
         server.stop();
         io_context.stop();
-        BOOST_LOG_TRIVIAL(debug) << fmt::format("Server {} stop\n", server.get_id());
+        BOOST_LOG_TRIVIAL(debug) << fmt::format("Server {} : stop\n", server.get_id());
         // exit(1);
     });
 
 
     server.start();
-    BOOST_LOG_TRIVIAL(debug) << fmt::format("Server {} start\n", server.get_id());
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("Server {} : start\n", server.get_id());
     io_context.run();
 
     std::cout << sizeof(boost::asio::ip::udp::endpoint) << std::endl;

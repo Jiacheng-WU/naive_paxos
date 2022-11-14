@@ -26,10 +26,24 @@ class Logger {
   public:
     Logger(std::filesystem::path acceptor_log_path, std::filesystem::path learner_log_path, PaxosServer* server):
     server(server), acceptor_log_path(acceptor_log_path), learner_log_path(learner_log_path) {
-        acceptor_log_file.open(acceptor_log_path, std::ios::out | std::ios::ate | std::ios::binary);
-        learner_log_file.open(learner_log_path, std::ios::out | std::ios::ate | std::ios::binary);
+
+        if (!std::filesystem::exists(acceptor_log_path)) {
+            acceptor_log_file.open(acceptor_log_path, std::ios::out | std::ios::binary);
+            acceptor_log_file.close();
+        }
+        if (!std::filesystem::exists(learner_log_path)) {
+            learner_log_file.open(learner_log_path, std::ios::out | std::ios::binary);
+            learner_log_file.close();
+        }
+
         acceptor_log_filesize = std::filesystem::file_size(acceptor_log_path);
+
         learner_log_filesize = std::filesystem::file_size(learner_log_path);
+
+//        fmt::print("{} {}\n", acceptor_log_path.generic_string(), acceptor_log_filesize);
+        acceptor_log_file.open(acceptor_log_path, std::ios::out | std::ios::in | std::ios::binary);
+        learner_log_file.open(learner_log_path, std::ios::out | std::ios::in | std::ios::binary);
+
     }
 
     inline static constexpr const std::uint32_t basic_file_state_blocks = 1024;
@@ -41,8 +55,9 @@ class Logger {
             std::size_t write_end_pos = (sequence / basic_file_state_blocks + 1) * basic_file_state_blocks * sizeof(AcceptorState);
             acceptor_log_file.seekp(0, std::ios::end);
             acceptor_log_file.write(acceptor_append_buffer, sizeof(acceptor_append_buffer));
+            acceptor_log_file.flush();
             full_sync(acceptor_log_file);
-            acceptor_log_filesize = write_end_pos;
+            acceptor_log_filesize = std::filesystem::file_size(acceptor_log_path);
         }
     }
 
@@ -52,8 +67,9 @@ class Logger {
             std::size_t write_end_pos = (sequence / basic_file_state_blocks + 1) * basic_file_state_blocks * sizeof(LearnerState);
             learner_log_file.seekp(0, std::ios::end);
             learner_log_file.write(learner_append_buffer, sizeof(learner_append_buffer));
+            learner_log_file.flush();
             full_sync(learner_log_file);
-            learner_log_filesize = write_end_pos;
+            learner_log_filesize = std::filesystem::file_size(learner_log_path);
         }
     }
 
@@ -92,7 +108,7 @@ class Logger {
         return current_seq_state;
     }
 
-    bool recover_from_log(std::vector<std::uint32_t>& hole_sequence, std::uint32_t& max_sequence);
+    bool recover_from_log(std::vector<std::uint32_t>& hole_sequence, std::uint32_t& min_sequence, std::uint32_t& max_sequence);
   private:
 
     char acceptor_state_buffer[AcceptorState::size()];

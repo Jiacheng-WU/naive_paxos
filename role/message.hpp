@@ -149,7 +149,7 @@ struct AcceptorState {
     std::uint32_t highest_accepted_proposal_number;
     ProposalValue highest_accepted_proposal_value;
     [[nodiscard]] static consteval std::size_t size() {
-        return sizeof(Message);
+        return sizeof(AcceptorState);
     }
     void serialize_to(char buffer[size()]) {
         memcpy(buffer, this, size());
@@ -165,7 +165,7 @@ struct LearnerState {
     std::uint32_t final_informed_proposal_number;
     ProposalValue final_informed_proposal_value;
     [[nodiscard]] static consteval std::size_t size() {
-        return sizeof(Message);
+        return sizeof(LearnerState);
     }
     void serialize_to(char buffer[size()]) {
         memcpy(buffer, this, size());
