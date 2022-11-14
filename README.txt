@@ -5,7 +5,7 @@ Team Members:
 
 Project Description:
 
-    
+    The configuration files is hardcoded in role/config.cpp load_config
 
 
 
