@@ -54,7 +54,6 @@ void PaxosServer::dispatch_paxos_message(std::unique_ptr<Message> m_p,
             if (accept != nullptr) {
                 instance->proposer.accept(std::move(accept));
             }
-            fmt::print("After Send Accept\n");
             // We need timeout mechanisms
             break;
         }
@@ -80,7 +79,6 @@ void PaxosServer::dispatch_paxos_message(std::unique_ptr<Message> m_p,
             if (inform != nullptr) {
                 // Over a majority of acceptor achieve consensus
                 instance->learner.inform(std::move(inform));
-                fmt::print("After inform\n");
             }
             break;
         }
@@ -89,6 +87,14 @@ void PaxosServer::dispatch_paxos_message(std::unique_ptr<Message> m_p,
             std::unique_ptr<Message> resubmit = instance->learner.on_rejected(std::move(m_p));
             if (resubmit != nullptr) {
                 // If we received majority of request, the we need to resubmit the proposal and prepare again
+                std::unique_ptr<boost::asio::ip::udp::endpoint> client_endpoint = get_udp_ipv4_endpoint_from_uint64_t(resubmit->proposal.value.client_id);
+                BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Need Resubmit {} {} from Client {}:{} {} since Instance received majority Denial",
+                                                        resubmit->sequence, this->get_id(),
+                                                        magic_enum::enum_name(resubmit->proposal.value.operation),
+                                                        resubmit->proposal.value.object,
+                                                        client_endpoint->address().to_string(),
+                                                        client_endpoint->port(),
+                                                        resubmit->proposal.value.client_once);
                 std::unique_ptr<Message> prepare = instance->proposer.on_submit(std::move(resubmit));
                 instance->proposer.prepare(std::move(prepare));
             }
@@ -97,34 +103,50 @@ void PaxosServer::dispatch_paxos_message(std::unique_ptr<Message> m_p,
         case MessageType::INFORM: {
             /** Other Learners Recv INFORM from Distinguished Learner **/
             std::unique_ptr<Message> command = instance->learner.on_inform(std::move(m_p));
+            if (command == nullptr) {
+                // if has informed before, we must have executed the command before
+                break;
+            }
             std::vector<std::unique_ptr<Message>> executed_commands = this->try_execute_commands(std::move(command));
-            if (!executed_commands.empty()) {
-                for(auto&& cmd: executed_commands) {
-                    if (cmd->from_id == id) {
-                        fmt::print("Before RESPONSE\n");
-                        std::unique_ptr<Message> command = std::move(cmd);
-                        std::unique_ptr<Message> resubmit = this->response(std::move(command));
-                        if (resubmit != nullptr) {
-                            // Add random delay for submit again
-                            std::shared_ptr<boost::asio::steady_timer> random_resubmit_timer =
-                                    std::make_shared<boost::asio::steady_timer>(socket.get_executor());
-                            random_resubmit_timer->expires_after(std::chrono::milliseconds(get_random_number(0, 1000)));
-                            random_resubmit_timer->async_wait([this, resubmit = std::move(resubmit), random_resubmit_timer]
-                            (const boost::system::error_code& error) mutable{
-                                if (error) {/* DO NOT RETURN, still send even it will be cancelled */}
-                                std::unique_ptr<Message> submit = this->on_submit_of_server(std::move(resubmit));
-                                // std::unique_ptr<Message> submit = std::move(submit_or_redirect);
-                                // We cannot modify the client_id since it is still the original one
-                                uint32_t instance_seq = submit->sequence;
-                                Instance *instance = instances.get_instance(instance_seq);
-                                // We need to reemplace with a newer sequence number;
-                                seq_to_expected_values.emplace(instance_seq, submit->proposal.value);
-                                std::unique_ptr<Message> prepare = instance->proposer.on_submit(std::move(submit));
-                                instance->proposer.prepare(std::move(prepare));
-                            });
-                        }
-                    }
+            if (executed_commands.empty()) {
+                break;
+            }
+            for (auto &&cmd: executed_commands) {
+                if (cmd->from_id != id) {
+                    // It represents that current server is not response to the client requests;
+                    continue;
                 }
+                std::unique_ptr<Message> command = std::move(cmd);
+                std::unique_ptr<Message> resubmit = this->response(std::move(command));
+                if (resubmit == nullptr) {
+                    // We have already finish the commands !!
+                    continue;
+                }
+                // Add random delay for submit again
+                std::unique_ptr<boost::asio::ip::udp::endpoint> client_endpoint = get_udp_ipv4_endpoint_from_uint64_t(resubmit->proposal.value.client_id);
+                BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Need Resubmit {} {} from Client {}:{} {} since Instance didn't select this Commands",
+                                                        resubmit->sequence, this->get_id(),
+                                                        magic_enum::enum_name(resubmit->proposal.value.operation),
+                                                        resubmit->proposal.value.object,
+                                                        client_endpoint->address().to_string(),
+                                                        client_endpoint->port(),
+                                                        resubmit->proposal.value.client_once);
+                std::shared_ptr<boost::asio::steady_timer> random_resubmit_timer =
+                        std::make_shared<boost::asio::steady_timer>(socket.get_executor());
+                random_resubmit_timer->expires_after(std::chrono::milliseconds(get_random_number(0, 1000)));
+                random_resubmit_timer->async_wait(
+                        [this, resubmit = std::move(resubmit), random_resubmit_timer]
+                        (const boost::system::error_code &error) mutable {
+                            if (error) {/* DO NOT RETURN, still send even it will be cancelled */}
+                            std::unique_ptr<Message> submit = this->on_submit_of_server(std::move(resubmit));
+                            // We cannot modify the client_id since it is still the original one
+                            uint32_t instance_seq = submit->sequence;
+                            Instance *instance = instances.get_instance(instance_seq);
+                            // We need to reemplace with a newer sequence number;
+                            seq_to_expected_values.emplace(instance_seq, submit->proposal.value);
+                            std::unique_ptr<Message> prepare = instance->proposer.on_submit(std::move(submit));
+                            instance->proposer.prepare(std::move(prepare));
+                        });
             }
             break;
         }
@@ -146,18 +168,25 @@ void PaxosServer::dispatch_server_message(std::unique_ptr<Message> m_p,
         case MessageType::SUBMIT: {
 
             std::unique_ptr<Message> submit = this->on_submit_of_server(std::move(m_p));
-            // We need to set client_id and maintain seq with proposal relation
             submit->proposal.value.client_id = get_uint64_from_udp_ipv4_endpoint(endpoint);
+
+            BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Recv Submit {} {} from Client {}:{} {}",
+                                                    submit->sequence, this->get_id(),
+                                                    magic_enum::enum_name(submit->proposal.value.operation),
+                                                    submit->proposal.value.object,
+                                                    endpoint->address().to_string(),
+                                                    endpoint->port(),
+                                                    submit->proposal.value.client_once);
+            // We need to set client_id and maintain seq with proposal relation
+
             uint32_t instance_seq = submit->sequence;
             Instance* instance = instances.get_instance(instance_seq);
             seq_to_expected_values.emplace(instance_seq, submit->proposal.value);
             std::unique_ptr<Message> prepare = instance->proposer.on_submit(std::move(submit));
 
             if (prepare != nullptr) {
-                fmt::print("SUBMIT server {} recv client {}\n", id, prepare->proposal.value.client_once);
                 instance->proposer.prepare(std::move(prepare));
             }
-            fmt::print("Finish PREPARE\n");
             break;
         }
 //        case MessageType::HEARTBEAT: {
@@ -273,9 +302,15 @@ std::unique_ptr<Message> PaxosServer::response(std::unique_ptr<Message> response
         seq_to_expected_values.erase(response->sequence);
     }
 
-    std::unique_ptr<boost::asio::ip::udp::endpoint> client_endpoints = get_udp_ipv4_endpoint_from_uint64_t(response->proposal.value.client_id);
-    fmt::print("Send to clients {} {}", client_endpoints->address().to_string(), resubmit == nullptr);
-    connect->do_send(std::move(response), std::move(client_endpoints), do_nothing_handler);
+    std::unique_ptr<boost::asio::ip::udp::endpoint> client_endpoint = get_udp_ipv4_endpoint_from_uint64_t(response->proposal.value.client_id);
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Async Send Response {} {} to Client {}:{} {}",
+                                            response->sequence, this->get_id(),
+                                            magic_enum::enum_name(response->proposal.value.operation),
+                                            response->proposal.value.object,
+                                            client_endpoint->address().to_string(),
+                                            client_endpoint->port(),
+                                            response->proposal.value.client_once);
+    connect->do_send(std::move(response), std::move(client_endpoint), do_nothing_handler);
     return resubmit;
 }
 
@@ -286,34 +321,62 @@ std::vector<std::unique_ptr<Message>> PaxosServer::try_execute_commands(std::uni
 
     std::vector<std::unique_ptr<Message>> executed_commands;
     if (command->sequence == executed_cmd_seq + 1) {
-        fmt::print("Before Execute Command\n");
+        std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint = get_udp_ipv4_endpoint_from_uint64_t(command->proposal.value.client_id);
+        BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Execute Command {} {} from Client {}:{} {}\n",
+                   command->sequence, this->get_id(),
+                   magic_enum::enum_name(command->proposal.value.operation),
+                   command->proposal.value.object,
+                   endpoint->address().to_string(),
+                   endpoint->port(),
+                   command->proposal.value.client_once);
         std::unique_ptr<Message> response = execute_command(std::move(command));
         if (response != nullptr) {
+            BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Server {} Command Result {} {} to Client {}:{} {}\n",
+                       response->sequence, this->get_id(),
+                       magic_enum::enum_name(response->proposal.value.operation),
+                       response->proposal.value.object,
+                       endpoint->address().to_string(),
+                       endpoint->port(),
+                       response->proposal.value.client_once);
             executed_commands.emplace_back(std::move(response));
         }
         executed_cmd_seq++;
-//        if (response != nullptr) {
-//            this->response(std::move(response));
-//        }
-
         // Try execute the following command until we read a hole
         while(!cmd_min_set.empty()) {
             std::size_t current_wait_sequence = (*cmd_min_set.begin())->sequence;
             if (current_wait_sequence == executed_cmd_seq + 1) {
                 std::unique_ptr<Message> next_command = std::move(cmd_min_set.extract(cmd_min_set.begin()).value());
-                std::unique_ptr<Message> response = execute_command(std::move(command));
+                std::unique_ptr<boost::asio::ip::udp::endpoint> next_endpoint = get_udp_ipv4_endpoint_from_uint64_t(next_command->proposal.value.client_id);
+                BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Execute Command {} {} from Client {}:{} {}\n",
+                                                        next_command->sequence, this->get_id(),
+                                                        magic_enum::enum_name(next_command->proposal.value.operation),
+                                                        next_command->proposal.value.object,
+                                                        next_endpoint->address().to_string(),
+                                                        next_endpoint->port(),
+                                                        next_command->proposal.value.client_once);
+                std::unique_ptr<Message> next_response = execute_command(std::move(next_command));
                 executed_cmd_seq++;
-                if (response != nullptr) {
-                    executed_commands.emplace_back(std::move(response));
+                if (next_response != nullptr) {
+                    BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Server {} Command Result {} {} to Client {}:{} {}\n",
+                                                            next_response->sequence, this->get_id(),
+                                                            magic_enum::enum_name(next_response->proposal.value.operation),
+                                                            next_response->proposal.value.object,
+                                                            next_endpoint->address().to_string(),
+                                                            next_endpoint->port(),
+                                                            next_response->proposal.value.client_once);
+                    executed_commands.emplace_back(std::move(next_response));
                 }
             } else {
                 break;
             }
         }
     } else if (command->sequence <= executed_cmd_seq) {
-        // Ignore this case
+        BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} already executed\n",
+                                                command->sequence, this->get_id());
     } else {
         // Here is a hole
+        BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} cannot executed due to holes exist\n",
+                                                command->sequence, this->get_id());
         cmd_min_set.emplace(std::move(command));
     }
     return executed_commands;

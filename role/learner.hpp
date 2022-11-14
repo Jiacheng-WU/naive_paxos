@@ -27,7 +27,7 @@ class Learner {
     // For distinguished learner
     std::unique_ptr<Message> on_accepted(std::unique_ptr<Message> accepted);
 
-    std::unique_ptr<Message> on_rejected(std::unique_ptr<Message> accepted);
+    std::unique_ptr<Message> on_rejected(std::unique_ptr<Message> rejected);
 
     void inform(std::unique_ptr<Message> inform);
 

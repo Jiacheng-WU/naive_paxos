@@ -14,11 +14,14 @@ std::unique_ptr<Message> Acceptor::on_prepare(std::unique_ptr<Message> prepare) 
         denial->type = MessageType::DENIAL;
         denial->proposal.number = this->highest_prepare_proposal_number;
         denial->prepare_proposal_number = prepare_proposal_number;
-        // Do not influence the value;
-        // denial->from_id = this->instance->server->get_id();
         return std::move(denial);
     } else {
-        fmt::print("Before Accept instance {} proposal {}\n", this->instance->seq, prepare->proposal.number);
+
+        BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Acceptor {} Prepare Number {}\n",
+                                                prepare->sequence,
+                                                this->instance->server->get_id(),
+                                                prepare->proposal.number);
+
         // The order is important since we reuse the Message buffer
         this->highest_prepare_proposal_number = prepare->proposal.number;
         this->instance->server->logger->write_acceptor_log(this->instance->seq,
@@ -32,9 +35,14 @@ std::unique_ptr<Message> Acceptor::on_prepare(std::unique_ptr<Message> prepare) 
         promise->proposal.number = highest_accepted_proposal_number;
         promise->proposal.value = highest_accepted_proposal_value;
         promise->prepare_proposal_number = prepare_proposal_number;
-        fmt::print("After instance {} proposal {}\n", this->instance->seq, promise->proposal.number);
 
-        // promise->from_id = this->instance->server->get_id();
+        BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Acceptor {} Promise Number {} Value {} {} \n",
+                                                promise->sequence,
+                                                this->instance->server->get_id(),
+                                                promise->proposal.number,
+                                                magic_enum::enum_name(promise->proposal.value.operation),
+                                                promise->proposal.value.object);
+        // Do not change from_id here before we get the returned endpoints!!!
         return std::move(promise);
     }
 }
@@ -51,7 +59,11 @@ std::unique_ptr<Message> Acceptor::on_accept(std::unique_ptr<Message> accept) {
         rejected->accept_proposal_number = accept_proposal_number;
         return std::move(rejected);
     } else {
-        fmt::print("Before accepted on accept\n");
+        BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Acceptor {} Accept Number {}\n",
+                                                accept->sequence,
+                                                this->instance->server->get_id(),
+                                                accept->proposal.number);
+
         this->highest_accepted_proposal_number = accept->proposal.number;
         this->highest_accepted_proposal_value = accept->proposal.value;
 
@@ -63,35 +75,44 @@ std::unique_ptr<Message> Acceptor::on_accept(std::unique_ptr<Message> accept) {
         accepted->type = MessageType::ACCEPTED;
         // Since it is accepted, it is not necessary to modify the proposal value or number
         accepted->accept_proposal_number = accept_proposal_number;
-        fmt::print("After accepted on accept\n");
+        BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Acceptor {} Accepted Number {} Value {} {} \n",
+                                                accepted->sequence,
+                                                this->instance->server->get_id(),
+                                                accepted->proposal.number,
+                                                magic_enum::enum_name(accepted->proposal.value.operation),
+                                                accepted->proposal.value.object);
         return std::move(accepted);
     }
 }
 
 void Acceptor::promise(std::unique_ptr<Message> promise) {
+    BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Acceptor {} Async Send Promise to Proposer {}\n",
+                                            promise->sequence, this->instance->server->get_id(), promise->from_id);
     auto endpoint = this->instance->server->config->get_addr_by_id(promise->from_id);
     promise->from_id = this->instance->server->get_id();
     this->instance->server->connect->do_send(std::move(promise), std::move(endpoint), do_nothing_handler);
-    fmt::print("After Promise\n");
 }
 
 void Acceptor::denial(std::unique_ptr<Message> denial) {
+    BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Acceptor {} Async Send Denial to Proposer {}\n",
+                                             denial->sequence, this->instance->server->get_id(), denial->from_id);
     auto endpoint = this->instance->server->config->get_addr_by_id(denial->from_id);
     denial->from_id = this->instance->server->get_id();
     this->instance->server->connect->do_send(std::move(denial), std::move(endpoint), do_nothing_handler);
 }
 
 void Acceptor::accepted(std::unique_ptr<Message> accepted) {
+    BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Acceptor {} Async Send Accepted to Learner {}\n",
+                                            accepted->sequence, this->instance->server->get_id(), accepted->from_id);
     auto endpoint = this->instance->server->config->get_addr_by_id(accepted->from_id);
     accepted->from_id = this->instance->server->get_id();
-    this->instance->server->connect->do_send(std::move(accepted), std::move(endpoint),
-                                                  do_nothing_handler);
+    this->instance->server->connect->do_send(std::move(accepted), std::move(endpoint), do_nothing_handler);
 }
 
 void Acceptor::rejected(std::unique_ptr<Message> rejected) {
+    BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Acceptor {} Async Send Rejected to Learner {}\n",
+                                            rejected->sequence, this->instance->server->get_id(), rejected->from_id);
     auto endpoint = this->instance->server->config->get_addr_by_id(rejected->from_id);
     rejected->from_id = this->instance->server->get_id();
-    this->instance->server->connect->do_send(std::move(rejected), std::move(endpoint),
-                                                  do_nothing_handler);
-
+    this->instance->server->connect->do_send(std::move(rejected), std::move(endpoint), do_nothing_handler);
 }

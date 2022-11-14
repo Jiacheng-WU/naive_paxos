@@ -33,7 +33,8 @@ std::unique_ptr<Message> Proposer::on_submit(std::unique_ptr<Message> submit) {
     }
 
     std::lock_guard<std::mutex> lock(proposer_mutex);
-    BOOST_LOG_TRIVIAL(trace) << fmt::format("before on_submit() \n");
+    BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Propose {} - on_submit\n",
+                                            submit->sequence, this->instance->server->get_id());
 
     // As we propose
     this->highest_accepted_proposal_number = 0; // Move to Initial State
@@ -55,8 +56,6 @@ std::unique_ptr<Message> Proposer::on_submit(std::unique_ptr<Message> submit) {
     std::unique_ptr<Message> prepare = std::move(submit);
     prepare->type = MessageType::PREPARE;
     prepare->proposal.number = proposal_number;
-
-    BOOST_LOG_TRIVIAL(trace) << fmt::format("after on_submit() \n");
     return std::move(prepare);
 }
 
@@ -64,7 +63,8 @@ std::unique_ptr<Message> Proposer::on_submit(std::unique_ptr<Message> submit) {
  * Return nullptr if do nothing
  */
 std::unique_ptr<Message> Proposer::on_promise(std::unique_ptr<Message> promise)  {
-    BOOST_LOG_TRIVIAL(trace) << fmt::format("before on_promise() \n");
+    BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Proposer {} - on_promise\n",
+                                            promise->sequence, this->instance->server->get_id());
 
     std::lock_guard<std::mutex> lock(proposer_mutex);
     // We use prepare_proposal_number to specify the proposal number in PREPARE
@@ -82,7 +82,6 @@ std::unique_ptr<Message> Proposer::on_promise(std::unique_ptr<Message> promise) 
     }
 
     current_promised_acceptors.set(promise->from_id);
-    BOOST_LOG_TRIVIAL(trace) << fmt::format("after on_promise() \n");
     // Majority
     if(current_promised_acceptors.count() * 2 > this->instance->server->get_number_of_nodes()) {
         have_promised = true;
@@ -100,6 +99,9 @@ std::unique_ptr<Message> Proposer::on_promise(std::unique_ptr<Message> promise) 
 }
 
 std::unique_ptr<Message> Proposer::on_denial(std::unique_ptr<Message> denial)  {
+    BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Proposer {} - on_denial\n",
+                                            denial->sequence, this->instance->server->get_id());
+
     std::lock_guard<std::mutex> lock(proposer_mutex);
     // We use prepare_proposal_number to specify the proposal number in PREPARE
     // while the proposal.number is the acceptor's largest number
@@ -132,16 +134,19 @@ void Proposer::accept(std::unique_ptr<Message> accept) {
     // We even do not need to notice whether it sent successfully or not
     accept->from_id = this->instance->server->get_id();
 
-    BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Accept Number {} Value {} {}\n",
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} Proposer {}: Accept Number {} Value {} {}\n",
                                             accept->sequence,
+                                            this->instance->server->get_id(),
                                             accept->proposal.number,
-                                            accept->proposal.value.operation == ProposalValue::LOCK? "LOCK" : "UNLOCK",
+                                            magic_enum::enum_name(accept->proposal.value.operation),
                                             accept->proposal.value.object);
 
     for(std::uint32_t node_id = 0; node_id < this->instance->server->get_number_of_nodes(); node_id++) {
         // We need to clone the unique_ptr<Message> and just send to all nodes;
         std::unique_ptr<Message> accept_copy = accept->clone();
         std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint = this->instance->server->config->get_addr_by_id(node_id);
+        BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Proposer {} Async Send Accept to Acceptor {}\n",
+                                                accept_copy->sequence, this->instance->server->get_id(), node_id);
         this->instance->server->connect->do_send(std::move(accept_copy), std::move(endpoint), do_nothing_handler);
     }
 
@@ -153,9 +158,17 @@ void Proposer::accept(std::unique_ptr<Message> accept) {
                 if(error) {
                     return ;
                 }
-                std::unique_ptr<Message> submit = std::move(old_accept);
-                submit->type = MessageType::SUBMIT;
-                std::unique_ptr<Message> prepare = this->instance->proposer.on_submit(std::move(submit));
+                std::unique_ptr<Message> resubmit = std::move(old_accept);
+                resubmit->type = MessageType::SUBMIT;
+                std::unique_ptr<boost::asio::ip::udp::endpoint> client_endpoint = get_udp_ipv4_endpoint_from_uint64_t(resubmit->proposal.value.client_id);
+                BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Need Resubmit {} {} from Client {}:{} {} since Proposer Accept Timeout",
+                                                        resubmit->sequence, this->instance->server->get_id(),
+                                                        magic_enum::enum_name(resubmit->proposal.value.operation),
+                                                        resubmit->proposal.value.object,
+                                                        client_endpoint->address().to_string(),
+                                                        client_endpoint->port(),
+                                                        resubmit->proposal.value.client_once);
+                std::unique_ptr<Message> prepare = this->instance->proposer.on_submit(std::move(resubmit));
                 instance->proposer.prepare(std::move(prepare));
             });
 }
@@ -163,16 +176,17 @@ void Proposer::accept(std::unique_ptr<Message> accept) {
 void Proposer::prepare(std::unique_ptr<Message> prepare) {
     prepare->from_id = this->instance->server->get_id();
 
-    BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Prepare Number {}\n",
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} Proposer {}: Prepare Number {}\n",
                                             prepare->sequence,
+                                            this->instance->server->get_id(),
                                             prepare->proposal.number);
 
     for(std::uint32_t node_id = 0; node_id < this->instance->server->get_number_of_nodes(); node_id++) {
         // We need to clone the unique_ptr<Message> and just send to all nodes;
         std::unique_ptr<Message> prepare_copy = prepare->clone();
-        fmt::print("Before SEND\n");
         std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint = this->instance->server->config->get_addr_by_id(node_id);
-        fmt::print("After SEND\n");
+        BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Proposer {} Async Send Prepare to Acceptor {}\n",
+                                                prepare_copy->sequence, this->instance->server->get_id(), node_id);
         this->instance->server->connect->do_send(std::move(prepare_copy), std::move(endpoint), do_nothing_handler);
     }
 
@@ -184,9 +198,18 @@ void Proposer::prepare(std::unique_ptr<Message> prepare) {
                 if(error) {
                     return ;
                 }
-                std::unique_ptr<Message> submit = std::move(old_prepare);
-                submit->type = MessageType::SUBMIT;
-                std::unique_ptr<Message> prepare = this->instance->proposer.on_submit(std::move(submit));
+
+                std::unique_ptr<Message> resubmit = std::move(old_prepare);
+                resubmit->type = MessageType::SUBMIT;
+                std::unique_ptr<boost::asio::ip::udp::endpoint> client_endpoint = get_udp_ipv4_endpoint_from_uint64_t(resubmit->proposal.value.client_id);
+                BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Need Resubmit {} {} from Client {}:{} {} since Proposal Prepare Timeout",
+                                                        resubmit->sequence, this->instance->server->get_id(),
+                                                        magic_enum::enum_name(resubmit->proposal.value.operation),
+                                                        resubmit->proposal.value.object,
+                                                        client_endpoint->address().to_string(),
+                                                        client_endpoint->port(),
+                                                        resubmit->proposal.value.client_once);
+                std::unique_ptr<Message> prepare = this->instance->proposer.on_submit(std::move(resubmit));
                 instance->proposer.prepare(std::move(prepare));
     });
 }
