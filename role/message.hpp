@@ -59,7 +59,7 @@ struct ProposalValue {
         LOCK_FAILED, // have been previously locked by other clients
         LOCK_AGAIN, // have been previously locked by itself
         UNLOCK_FAILED, // have been not previous locked
-        UNLOCK_AGAIN, // unlock on a already unlocked object
+        UNLOCK_RELEASED, // unlock on a already unlocked object
     } operation = UNDEFINED;
     std::uint32_t object = 0;
     std::uint64_t client_id = 0;

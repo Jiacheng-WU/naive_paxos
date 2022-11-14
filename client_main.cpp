@@ -8,24 +8,13 @@
 
 #include "client.hpp"
 #include <fstream>
+
+#include "magic_enum.hpp"
+#include <chrono>
+#include <thread>
+
 int main(int argc, char* argv[]) {
-//    auto k = std::move(do_nothing_handler);
-//    do_nothing_handler(nullptr, nullptr, {});
-//    std::fstream out;
-//    if (!std::filesystem::exists("file.log")) {
-//        out.open("file.log", std::ios::out | std::ios::binary);
-//        out.close();
-//    }
-//    out.open("file.log", std::ios::out | std::ios::in | std::ios::binary);
-//    std::cout << std::filesystem::file_size("file.log") << "\n";
-//    out.seekp(0);
-//    char k[4] = {};
-//    out.read(k, 3);
-//    out.flush();
-//    std::cout << k << "\n";
-//    out.close();
-//
-//    return 0;
+
 
     std::uint32_t current_id = 0;
     std::unique_ptr<Config> config = std::make_unique<Config>();
@@ -33,13 +22,20 @@ int main(int argc, char* argv[]) {
 
     PaxosClient client(std::move(config));
     boost::system::error_code error;
-//    auto len = client.receive(boost::asio::buffer(client.in_message), std::chrono::milliseconds(1000), error);
-//    if (error) {
-//        std::cout << error.what() << std::endl;
-//    }
 
-    client.lock(1);
-    client.unlock(1);
+    fmt::print("lock(1)\t: response {}\n" , magic_enum::enum_name(client.lock(1)));
+    fmt::print("lock(1)\t: response {}\n" , magic_enum::enum_name(client.lock(1)));
+
+    fmt::print("lock(2)\t: response {}\n" , magic_enum::enum_name(client.lock(2)));
+    fmt::print("lock(2)\t: response {}\n" , magic_enum::enum_name(client.lock(2)));
+
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+
+    fmt::print("unlock(2)\t: response {}\n" , magic_enum::enum_name(client.unlock(2)));
+    fmt::print("unlock(2)\t: response {}\n" , magic_enum::enum_name(client.unlock(2)));
+
+    fmt::print("unlock(1)\t: response {}\n" , magic_enum::enum_name(client.unlock(1)));
+    fmt::print("unlock(1)\t: response {}\n" , magic_enum::enum_name(client.unlock(1)));
 
     return 0;
 }

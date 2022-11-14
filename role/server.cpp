@@ -261,6 +261,7 @@ std::unique_ptr<Message> PaxosServer::execute_command(std::unique_ptr<Message> c
             }
             lock_client_id_t current_client_id = response->proposal.value.client_id;
             lock_client_id_t locked_client_id = object_lock_state[object_id];
+            fmt::print("{}, {}\n", locked_client_id, current_client_id);
             if (locked_client_id == unused_udp_ipv4_number) {
                 object_lock_state[object_id] = current_client_id;
                 response->proposal.value.operation = ProposalValue::LOCK_SUCCEED;
@@ -282,7 +283,7 @@ std::unique_ptr<Message> PaxosServer::execute_command(std::unique_ptr<Message> c
             lock_client_id_t current_client_id = response->proposal.value.client_id;
             lock_client_id_t locked_client_id = object_lock_state[object_id];
             if (locked_client_id == unused_udp_ipv4_number) {
-                response->proposal.value.operation = ProposalValue::UNLOCK_AGAIN;
+                response->proposal.value.operation = ProposalValue::UNLOCK_RELEASED;
             } else if (locked_client_id == current_client_id) {
                 response->proposal.value.operation = ProposalValue::UNLOCK_SUCCEED;
                 object_lock_state[object_id] = unused_udp_ipv4_number;

@@ -7,11 +7,22 @@
 #include <boost/algorithm/string/trim_all.hpp>
 #include <boost/lexical_cast.hpp>
 #include "server.hpp"
+#include <boost/log/core.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/log/expressions.hpp>
+
+void init()
+{
+    boost::log::core::get()->set_filter
+            (
+                    boost::log::trivial::severity >= boost::log::trivial::info
+            );
+}
 
 int main(int argc, char* argv[]) {
 //    auto k = std::move(do_nothing_handler);
 //    do_nothing_handler(nullptr, nullptr, {});
-
+    init();
 
     if (argc == 1 || argc >= 4) {
         std::cout << fmt::format("{} {} {}\n", "program_name", "id", "(recovery)");

@@ -159,12 +159,12 @@ class PaxosClient {
             case ProposalValue::UNLOCK_SUCCEED:
                 return op_result_type::UNLOCK_SUCCEED;
             case ProposalValue::LOCK_FAILED:
-                return op_result_type::LOCK_SUCCEED;
+                return op_result_type::LOCK_FAILED;
             case ProposalValue::LOCK_AGAIN:
                 return op_result_type::LOCK_AGAIN;
             case ProposalValue::UNLOCK_FAILED:
                 return op_result_type::UNLOCK_FAILED;
-            case ProposalValue::UNLOCK_AGAIN:
+            case ProposalValue::UNLOCK_RELEASED:
                 return op_result_type::UNLOCK_AGAIN;
             default:
                 return op_result_type::UNDEFINED;
@@ -181,7 +181,7 @@ class PaxosClient {
     }
 
     op_result_type unlock(std::uint32_t object_id) {
-        return lock_or_unlock(object_id, op_type::LOCK);
+        return lock_or_unlock(object_id, op_type::UNLOCK);
     }
 
 //  private:
