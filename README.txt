@@ -5,15 +5,13 @@ Team Members:
 
 Project Description:
 
-    * Leader Election:
-        - Default we will have 0 as the leader
-        - When it cannot receives heartbeat from the leader
-        - Then itself will wait for server_id * ROUND_INTERVAL to wait and try elect again
+    
+
 
 
 Some Discussions:
 
-    Suppose we have proposer P1, P2, P3 (If we use P means the alive distinguished leader)
+    Suppose we have proposer P1, P2, P3
     Suppoer we heve acceptor A1, A2, A3
 
     * The Consensus is that once > half of acceptors agreed on a number, then they have consensus.
@@ -46,13 +44,18 @@ Some Discussions:
         - (rather than the same value). [From Wikipedia]
         - I also have a counterexample if the learner just accepted > half acceptors only agreed on same value
 
-    * It is legal to propose no-ops even if some acceptors may already previous accept some values when leader recovery
-        - Since the leader will re-execute unlearned commands and the whole procedure of basic paxos
+    * It is legal to propose no-ops even if some acceptors may already previous accept some values when instance recovery
+        - Since the instance will re-execute unlearned commands and the whole procedure of basic paxos
         - Then even if it proposes no-ops in Phase 1 (actually Phase 1 even do not need proposal value)
         - It will still receive other accepted value as the value of current instances
         - Only if the majority of acceptors which received the PREPARE and replied PROMISE with no value
-        - Could the new leader decided the current proposal value with NO-OPS!!
+        - Could the new instance decided the current proposal value with NO-OPS!!
         - Thus, it is no wrong to propose NO-OPS when recovery for never learnt instances.
+
+    * It is also legal to even not propose no-ops or just use already existed sequence after recovery
+        - Just similar to the above cases since just replacing the no-ops with current values submitted by clients
+        - If we have a mechanism to support re-submit client requests when
+            - the commands for current instance is not the client submitted!
 
 
     * We need to persist what state on paxos nodes
@@ -116,3 +119,5 @@ Some Discussions:
         - which may influence liveness somehow.
         - But we do an optimization by delaying the updating infos until received new ACCEPTED
         - rather than the PREPARE!
+
+    *
