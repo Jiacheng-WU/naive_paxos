@@ -24,7 +24,6 @@ int main(int argc, char* argv[]) {
     std::uint32_t current_id = 0;
     try {
         current_id = boost::lexical_cast<uint32_t>(argv[1]);
-        std::cout << fmt::format("current_id = {}\n", current_id);
         assert(current_id < config->number_of_nodes);
     } catch (boost::bad_lexical_cast& err) {
         std::cout << fmt::format("{} {}\n", "program_name", "id");
@@ -36,9 +35,9 @@ int main(int argc, char* argv[]) {
         need_recovery = true;
     }
 
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("Server {} {}\n", current_id, need_recovery? "recovery": "no recovery");
+
     boost::asio::io_context io_context;
-
-
 
     PaxosServer server(io_context, current_id, std::move(config));
     if (need_recovery) {
@@ -50,13 +49,13 @@ int main(int argc, char* argv[]) {
     signals.async_wait([&server, &io_context](const boost::system::error_code& error, int signal_number ) {
         server.stop();
         io_context.stop();
-        exit(1);
+        BOOST_LOG_TRIVIAL(debug) << fmt::format("Server {} stop\n", server.get_id());
+        // exit(1);
     });
 
 
     server.start();
-
-
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("Server {} start\n", server.get_id());
     io_context.run();
 
     std::cout << sizeof(boost::asio::ip::udp::endpoint) << std::endl;

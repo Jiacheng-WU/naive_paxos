@@ -88,7 +88,7 @@ void PaxosServer::dispatch_paxos_message(std::unique_ptr<Message> m_p,
             if (resubmit != nullptr) {
                 // If we received majority of request, the we need to resubmit the proposal and prepare again
                 std::unique_ptr<boost::asio::ip::udp::endpoint> client_endpoint = get_udp_ipv4_endpoint_from_uint64_t(resubmit->proposal.value.client_id);
-                BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Need Resubmit {} {} from Client {}:{} {} since Instance received majority Denial",
+                BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Need Resubmit {} {} from Client {}:{} {} since Instance received majority Denial\n",
                                                         resubmit->sequence, this->get_id(),
                                                         magic_enum::enum_name(resubmit->proposal.value.operation),
                                                         resubmit->proposal.value.object,
@@ -124,7 +124,7 @@ void PaxosServer::dispatch_paxos_message(std::unique_ptr<Message> m_p,
                 }
                 // Add random delay for submit again
                 std::unique_ptr<boost::asio::ip::udp::endpoint> client_endpoint = get_udp_ipv4_endpoint_from_uint64_t(resubmit->proposal.value.client_id);
-                BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Need Resubmit {} {} from Client {}:{} {} since Instance didn't select this Commands",
+                BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Need Resubmit {} {} from Client {}:{} {} since Instance didn't select this Commands\n",
                                                         resubmit->sequence, this->get_id(),
                                                         magic_enum::enum_name(resubmit->proposal.value.operation),
                                                         resubmit->proposal.value.object,
@@ -170,7 +170,7 @@ void PaxosServer::dispatch_server_message(std::unique_ptr<Message> m_p,
             std::unique_ptr<Message> submit = this->on_submit_of_server(std::move(m_p));
             submit->proposal.value.client_id = get_uint64_from_udp_ipv4_endpoint(endpoint);
 
-            BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Recv Submit {} {} from Client {}:{} {}",
+            BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Recv Submit {} {} from Client {}:{} {}\n",
                                                     submit->sequence, this->get_id(),
                                                     magic_enum::enum_name(submit->proposal.value.operation),
                                                     submit->proposal.value.object,
@@ -303,7 +303,7 @@ std::unique_ptr<Message> PaxosServer::response(std::unique_ptr<Message> response
     }
 
     std::unique_ptr<boost::asio::ip::udp::endpoint> client_endpoint = get_udp_ipv4_endpoint_from_uint64_t(response->proposal.value.client_id);
-    BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Async Send Response {} {} to Client {}:{} {}",
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Async Send Response {} {} to Client {}:{} {}\n",
                                             response->sequence, this->get_id(),
                                             magic_enum::enum_name(response->proposal.value.operation),
                                             response->proposal.value.object,

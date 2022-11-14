@@ -20,7 +20,7 @@ std::uint32_t Proposer::get_next_proposal_number() {
     assert(this->instance->server->get_number_of_nodes() != 0);
     assert(this->current_proposal_number != 0);
 
-    this->current_proposal_number += this->instance->server->get_id();
+    this->current_proposal_number += this->instance->server->get_number_of_nodes();
     std::uint32_t next_proposal_number = this->current_proposal_number;
     return next_proposal_number;
 }
@@ -134,7 +134,7 @@ void Proposer::accept(std::unique_ptr<Message> accept) {
     // We even do not need to notice whether it sent successfully or not
     accept->from_id = this->instance->server->get_id();
 
-    BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} Proposer {}: Accept Number {} Value {} {}\n",
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Proposer {} Accept Number {} Value {} {}\n",
                                             accept->sequence,
                                             this->instance->server->get_id(),
                                             accept->proposal.number,
@@ -161,7 +161,7 @@ void Proposer::accept(std::unique_ptr<Message> accept) {
                 std::unique_ptr<Message> resubmit = std::move(old_accept);
                 resubmit->type = MessageType::SUBMIT;
                 std::unique_ptr<boost::asio::ip::udp::endpoint> client_endpoint = get_udp_ipv4_endpoint_from_uint64_t(resubmit->proposal.value.client_id);
-                BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Need Resubmit {} {} from Client {}:{} {} since Proposer Accept Timeout",
+                BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Need Resubmit {} {} from Client {}:{} {} since Proposer Accept Timeout\n",
                                                         resubmit->sequence, this->instance->server->get_id(),
                                                         magic_enum::enum_name(resubmit->proposal.value.operation),
                                                         resubmit->proposal.value.object,
@@ -176,7 +176,7 @@ void Proposer::accept(std::unique_ptr<Message> accept) {
 void Proposer::prepare(std::unique_ptr<Message> prepare) {
     prepare->from_id = this->instance->server->get_id();
 
-    BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} Proposer {}: Prepare Number {}\n",
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Proposer {} Prepare Number {}\n",
                                             prepare->sequence,
                                             this->instance->server->get_id(),
                                             prepare->proposal.number);
@@ -202,7 +202,7 @@ void Proposer::prepare(std::unique_ptr<Message> prepare) {
                 std::unique_ptr<Message> resubmit = std::move(old_prepare);
                 resubmit->type = MessageType::SUBMIT;
                 std::unique_ptr<boost::asio::ip::udp::endpoint> client_endpoint = get_udp_ipv4_endpoint_from_uint64_t(resubmit->proposal.value.client_id);
-                BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Need Resubmit {} {} from Client {}:{} {} since Proposal Prepare Timeout",
+                BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Need Resubmit {} {} from Client {}:{} {} since Proposal Prepare Timeout\n",
                                                         resubmit->sequence, this->instance->server->get_id(),
                                                         magic_enum::enum_name(resubmit->proposal.value.operation),
                                                         resubmit->proposal.value.object,

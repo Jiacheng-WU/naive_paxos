@@ -58,7 +58,7 @@ std::unique_ptr<Message> Learner::on_rejected(std::unique_ptr<Message> rejected)
 
 void Learner::inform(std::unique_ptr<Message> inform) {
 
-    BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} Learner {}: Inform Number {} Value {} {}\n",
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Learner {} Inform Number {} Value {} {}\n",
                                             inform->sequence,
                                             this->instance->server->get_id(),
                                             inform->proposal.number,
@@ -82,9 +82,9 @@ std::unique_ptr<Message> Learner::on_inform(std::unique_ptr<Message> inform) {
                                             inform->sequence, this->instance->server->get_id());
     std::lock_guard<std::mutex> lock(learner_mutex);
     // Log State and
-//    if (has_been_informed) {
-//        return nullptr;
-//    }
+    if (has_been_informed) {
+        return nullptr;
+    }
 
     has_been_informed = true;
     this->highest_accepted_proposal_number = inform->proposal.number;
