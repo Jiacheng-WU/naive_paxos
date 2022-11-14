@@ -24,3 +24,57 @@ std::uint32_t get_random_number(std::uint32_t begin, std::uint32_t end) {
     std::mt19937 mt(rd());
     return ud(mt);
 }
+
+void Connection::do_send(std::unique_ptr<Message> m_p,
+                         std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint,
+                         Handler handler)
+{
+    std::unique_ptr<MessageBuffer> out_buf = std::make_unique<MessageBuffer>();
+    m_p->serialize_to(out_buf->buffer);
+    socket_.async_send_to(boost::asio::buffer(out_buf->buffer), *endpoint,
+                          [this, m_p = std::move(m_p), endpoint = std::move(endpoint), handler = std::move(handler), out_buf = std::move(out_buf)]
+                                  (boost::system::error_code ec, std::size_t length) mutable -> void {
+                              // We should first release our buffer to avoid recursive memory leak;
+                              out_buf.release();
+                              if (ec) {
+                                  assert(length == Message::size());
+                                  if (SEND_RETRY_TIMES > 0) {
+                                      resend_if_do_send_failed(std::move(m_p), std::move(endpoint), std::move(handler));
+                                  } else {
+                                      BOOST_LOG_TRIVIAL(debug) << fmt::format("Failed to send {}:{} with error {}\n",
+                                                                              endpoint->address().to_string(),
+                                                                              endpoint->port(),
+                                                                              ec.message());
+                                      return handler(std::move(m_p), std::move(endpoint), {ec, length});
+                                      // Won't resend But still won't failed
+                                  }
+                                  // Try to resend
+                              } else {
+                                  return handler(std::move(m_p), std::move(endpoint), {ec, length});
+                              }
+                          });
+}
+
+void Connection::do_receive(std::unique_ptr<Message> m_p, Handler handler) {
+    std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint = std::make_unique<boost::asio::ip::udp::endpoint>();
+    std::unique_ptr<MessageBuffer> in_buf = std::make_unique<MessageBuffer>();
+    socket_.async_receive_from(boost::asio::buffer(in_buf->buffer), *endpoint,
+                               [this, m_p = std::move(m_p), endpoint = std::move(endpoint), handler = std::move(handler), in_buf = std::move(in_buf)]
+                                       (boost::system::error_code ec, std::size_t length) mutable -> void {
+                                   assert(length == Message::size());
+                                   // We should first deserialize and avoid recursive memory leakage
+                                   m_p->deserialize_from(in_buf->buffer);
+                                   in_buf.release();
+                                   if (ec) {
+                                       BOOST_LOG_TRIVIAL(debug) << fmt::format("Failed to receive {}:{} with error {}\n",
+                                                                               endpoint->address().to_string(),
+                                                                               endpoint->port(),
+                                                                               ec.message());
+                                       do_receive(std::move(m_p), std::move(handler));
+                                   }
+                                   else {
+                                       // Inform caller that data has been received ok.
+                                       handler(std::move(m_p), std::move(endpoint), {ec, length});
+                                   }
+                               });
+}

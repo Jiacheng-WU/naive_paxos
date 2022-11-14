@@ -96,7 +96,9 @@ void PaxosServer::dispatch_paxos_message(std::unique_ptr<Message> m_p,
                                                         client_endpoint->port(),
                                                         resubmit->proposal.value.client_once);
                 std::unique_ptr<Message> prepare = instance->proposer.on_submit(std::move(resubmit));
-                instance->proposer.prepare(std::move(prepare));
+                if (prepare != nullptr) {
+                    instance->proposer.prepare(std::move(prepare));
+                }
             }
             break;
         }
@@ -138,14 +140,22 @@ void PaxosServer::dispatch_paxos_message(std::unique_ptr<Message> m_p,
                         [this, resubmit = std::move(resubmit), random_resubmit_timer]
                         (const boost::system::error_code &error) mutable {
                             if (error) {/* DO NOT RETURN, still send even it will be cancelled */}
-                            std::unique_ptr<Message> submit = this->on_submit_of_server(std::move(resubmit));
-                            // We cannot modify the client_id since it is still the original one
-                            uint32_t instance_seq = submit->sequence;
-                            Instance *instance = instances.get_instance(instance_seq);
-                            // We need to reemplace with a newer sequence number;
-                            seq_to_expected_values.emplace(instance_seq, submit->proposal.value);
-                            std::unique_ptr<Message> prepare = instance->proposer.on_submit(std::move(submit));
-                            instance->proposer.prepare(std::move(prepare));
+                            seq_to_expected_values.erase(resubmit->sequence);
+                            std::unique_ptr<Message> prepare = nullptr;
+                            uint32_t instance_seq = 0;
+                            ProposalValue proposal_value = resubmit->proposal.value;
+                            do {
+                                std::unique_ptr<Message> submit = this->on_submit_of_server(resubmit->clone());
+                                // We cannot modify the client_id since it is still the original one
+                                instance_seq = submit->sequence;
+                                Instance *instance = instances.get_instance(instance_seq);
+                                // We need to reemplace with a newer sequence number;
+                                ProposalValue client_submitted_value = submit->proposal.value;
+                                prepare = instance->proposer.on_submit(std::move(submit));
+                            } while(prepare == nullptr);
+
+                            seq_to_expected_values.emplace(instance_seq, proposal_value);
+                            instances.get_instance(instance_seq)->proposer.prepare(std::move(prepare));
                         });
             }
             break;
@@ -167,26 +177,30 @@ void PaxosServer::dispatch_server_message(std::unique_ptr<Message> m_p,
     switch (m_p->type) {
         case MessageType::SUBMIT: {
 
-            std::unique_ptr<Message> submit = this->on_submit_of_server(std::move(m_p));
-            submit->proposal.value.client_id = get_uint64_from_udp_ipv4_endpoint(endpoint);
 
-            BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Recv Submit {} {} from Client {}:{} {}\n",
-                                                    submit->sequence, this->get_id(),
-                                                    magic_enum::enum_name(submit->proposal.value.operation),
-                                                    submit->proposal.value.object,
-                                                    endpoint->address().to_string(),
-                                                    endpoint->port(),
-                                                    submit->proposal.value.client_once);
-            // We need to set client_id and maintain seq with proposal relation
+            std::unique_ptr<Message> prepare = nullptr;
+            uint32_t instance_seq = 0;
+            ProposalValue proposal_value = m_p->proposal.value;
+            proposal_value.client_id = get_uint64_from_udp_ipv4_endpoint(endpoint);
+            do {
+                std::unique_ptr<Message> submit = this->on_submit_of_server(m_p->clone());
+                submit->proposal.value.client_id = get_uint64_from_udp_ipv4_endpoint(endpoint);
+                
+                BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Recv Submit {} {} from Client {}:{} {}\n",
+                                                        submit->sequence, this->get_id(),
+                                                        magic_enum::enum_name(submit->proposal.value.operation),
+                                                        submit->proposal.value.object,
+                                                        endpoint->address().to_string(),
+                                                        endpoint->port(),
+                                                        submit->proposal.value.client_once);
+                // We need to set client_id and maintain seq with proposal relation
 
-            uint32_t instance_seq = submit->sequence;
-            Instance* instance = instances.get_instance(instance_seq);
-            seq_to_expected_values.emplace(instance_seq, submit->proposal.value);
-            std::unique_ptr<Message> prepare = instance->proposer.on_submit(std::move(submit));
-
-            if (prepare != nullptr) {
-                instance->proposer.prepare(std::move(prepare));
-            }
+                instance_seq = submit->sequence;
+                Instance* instance = instances.get_instance(instance_seq);
+                prepare = instance->proposer.on_submit(std::move(submit));
+            } while(prepare == nullptr);
+            seq_to_expected_values.emplace(instance_seq, proposal_value);
+            instances.get_instance(instance_seq)->proposer.prepare(std::move(prepare));
             break;
         }
 //        case MessageType::HEARTBEAT: {
