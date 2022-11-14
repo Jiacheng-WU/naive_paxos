@@ -2,8 +2,8 @@
 // Created by Jiacheng Wu on 11/8/22.
 //
 
-#ifndef PAXOS_SYNC_H
-#define PAXOS_SYNC_H
+#ifndef PAXOS_SYNC_HPP
+#define PAXOS_SYNC_HPP
 
 #include <unistd.h>
 #include <errno.h>
@@ -41,4 +41,4 @@ inline int full_sync(int fd)
     return 0;
 }
 
-#endif //PAXOS_SYNC_H
+#endif //PAXOS_SYNC_HPP

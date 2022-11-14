@@ -2,10 +2,10 @@
 // Created by Jiacheng Wu on 10/31/22.
 //
 
-#include "proposer.h"
-#include "instance.h"
-#include "server.h"
-#include "config.h"
+#include "proposer.hpp"
+#include "instance.hpp"
+#include "server.hpp"
+#include "config.hpp"
 
 Proposer::Proposer(Instance *inst) : instance(inst) {
     // We will use the default current_proposal_number for multi-paxos optimization
@@ -33,7 +33,7 @@ std::unique_ptr<Message> Proposer::on_submit(std::unique_ptr<Message> submit) {
     }
 
     std::lock_guard<std::mutex> lock(proposer_mutex);
-
+    BOOST_LOG_TRIVIAL(trace) << fmt::format("before on_submit() \n");
 
     // As we propose
     this->highest_accepted_proposal_number = 0; // Move to Initial State
@@ -55,7 +55,8 @@ std::unique_ptr<Message> Proposer::on_submit(std::unique_ptr<Message> submit) {
     std::unique_ptr<Message> prepare = std::move(submit);
     prepare->type = MessageType::PREPARE;
     prepare->proposal.number = proposal_number;
-    fmt::print("Start PREPARE\n");
+
+    BOOST_LOG_TRIVIAL(trace) << fmt::format("after on_submit() \n");
     return std::move(prepare);
 }
 
@@ -63,7 +64,7 @@ std::unique_ptr<Message> Proposer::on_submit(std::unique_ptr<Message> submit) {
  * Return nullptr if do nothing
  */
 std::unique_ptr<Message> Proposer::on_promise(std::unique_ptr<Message> promise)  {
-    fmt::print("Before On Promise\n");
+    BOOST_LOG_TRIVIAL(trace) << fmt::format("before on_promise() \n");
 
     std::lock_guard<std::mutex> lock(proposer_mutex);
     // We use prepare_proposal_number to specify the proposal number in PREPARE
@@ -81,7 +82,7 @@ std::unique_ptr<Message> Proposer::on_promise(std::unique_ptr<Message> promise) 
     }
 
     current_promised_acceptors.set(promise->from_id);
-    fmt::print("After On Promise\n");
+    BOOST_LOG_TRIVIAL(trace) << fmt::format("after on_promise() \n");
     // Majority
     if(current_promised_acceptors.count() * 2 > this->instance->server->get_number_of_nodes()) {
         have_promised = true;
@@ -91,6 +92,7 @@ std::unique_ptr<Message> Proposer::on_promise(std::unique_ptr<Message> promise) 
         accept->proposal.value = this->highest_accepted_proposal_value;
         // accept->from_id = this->instance->server->get_id();
         this->instance->deadline_timer.cancel();
+
         return std::move(accept);
     } else {
         return nullptr;
@@ -130,6 +132,12 @@ void Proposer::accept(std::unique_ptr<Message> accept) {
     // We even do not need to notice whether it sent successfully or not
     accept->from_id = this->instance->server->get_id();
 
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Accept Number {} Value {} {}\n",
+                                            accept->sequence,
+                                            accept->proposal.number,
+                                            accept->proposal.value.operation == ProposalValue::LOCK? "LOCK" : "UNLOCK",
+                                            accept->proposal.value.object);
+
     for(std::uint32_t node_id = 0; node_id < this->instance->server->get_number_of_nodes(); node_id++) {
         // We need to clone the unique_ptr<Message> and just send to all nodes;
         std::unique_ptr<Message> accept_copy = accept->clone();
@@ -154,6 +162,10 @@ void Proposer::accept(std::unique_ptr<Message> accept) {
 
 void Proposer::prepare(std::unique_ptr<Message> prepare) {
     prepare->from_id = this->instance->server->get_id();
+
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Prepare Number {}\n",
+                                            prepare->sequence,
+                                            prepare->proposal.number);
 
     for(std::uint32_t node_id = 0; node_id < this->instance->server->get_number_of_nodes(); node_id++) {
         // We need to clone the unique_ptr<Message> and just send to all nodes;

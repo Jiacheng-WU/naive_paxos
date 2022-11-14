@@ -2,8 +2,8 @@
 // Created by Jiacheng Wu on 10/31/22.
 //
 
-#include "learner.h"
-#include "server.h"
+#include "learner.hpp"
+#include "server.hpp"
 
 Learner::Learner(Instance *inst): instance(inst) {
     current_accepted_acceptors.resize(this->instance->server->get_number_of_nodes(), false);
@@ -42,10 +42,13 @@ std::unique_ptr<Message> Learner::on_accepted(std::unique_ptr<Message> accepted)
     } else {
         return nullptr;
     }
-
     // we can then trigger the broadcast INFROM
 }
 
+std::unique_ptr<Message> Learner::on_rejected(std::unique_ptr<Message> accepted) {
+    return nullptr;
+    // we can then trigger the broadcast INFROM
+}
 
 void Learner::inform(std::unique_ptr<Message> inform) {
     inform->from_id = this->instance->server->get_id();

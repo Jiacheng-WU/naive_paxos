@@ -2,8 +2,8 @@
 // Created by Jiacheng Wu on 11/10/22.
 //
 
-#ifndef PAXOS_LOGGER_H
-#define PAXOS_LOGGER_H
+#ifndef PAXOS_LOGGER_HPP
+#define PAXOS_LOGGER_HPP
 
 /**
  * Logger needs to maintain instances and information,
@@ -15,8 +15,8 @@
 #include <fstream>
 #include <vector>
 #include "fmt/core.h"
-#include "sync.h"
-#include "message.h"
+#include "sync.hpp"
+#include "message.hpp"
 
 class PaxosServer;
 
@@ -107,4 +107,4 @@ class Logger {
 };
 
 
-#endif //PAXOS_LOGGER_H
+#endif //PAXOS_LOGGER_HPP

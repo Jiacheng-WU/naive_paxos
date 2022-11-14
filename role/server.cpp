@@ -2,7 +2,7 @@
 // Created by Jiacheng Wu on 11/7/22.
 //
 
-#include "server.h"
+#include "server.hpp"
 
 void PaxosServer::dispatch_received_message(std::unique_ptr<Message> m_p, std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint, asio_handler_paras paras) {
     switch (m_p->type) {
@@ -85,8 +85,13 @@ void PaxosServer::dispatch_paxos_message(std::unique_ptr<Message> m_p,
             break;
         }
         case MessageType::REJECTED: {
-            /** Proposer Recv REJECTED from Acceptor **/
-            /** Could simply ignore it **/
+            /** Proposer Recv DENIAL (NOT PROMISE) from Acceptor in Phase 1 **/
+            std::unique_ptr<Message> resubmit = instance->learner.on_rejected(std::move(m_p));
+            if (resubmit != nullptr) {
+                // If we received majority of request, the we need to resubmit the proposal and prepare again
+                std::unique_ptr<Message> prepare = instance->proposer.on_submit(std::move(resubmit));
+                instance->proposer.prepare(std::move(prepare));
+            }
             break;
         }
         case MessageType::INFORM: {

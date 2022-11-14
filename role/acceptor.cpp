@@ -2,9 +2,9 @@
 // Created by Jiacheng Wu on 10/31/22.
 //
 
-#include "acceptor.h"
-#include "instance.h"
-#include "server.h"
+#include "acceptor.hpp"
+#include "instance.hpp"
+#include "server.hpp"
 
 std::unique_ptr<Message> Acceptor::on_prepare(std::unique_ptr<Message> prepare) {
     std::lock_guard<std::mutex> lock(acceptor_mutex);

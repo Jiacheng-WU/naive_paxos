@@ -2,14 +2,14 @@
 // Created by Jiacheng Wu on 11/7/22.
 //
 
-#ifndef PAXOS_SERVER_H
-#define PAXOS_SERVER_H
+#ifndef PAXOS_SERVER_HPP
+#define PAXOS_SERVER_HPP
 
-#include "network.h"
-#include "instance.h"
+#include "network.hpp"
+#include "instance.hpp"
 #include "fmt/core.h"
-#include "config.h"
-#include "logger.h"
+#include "config.hpp"
+#include "logger.hpp"
 #include <iostream>
 #include <unordered_map>
 #include <queue>
@@ -180,4 +180,4 @@ class PaxosServer {
 };
 
 
-#endif //PAXOS_SERVER_H
+#endif //PAXOS_SERVER_HPP

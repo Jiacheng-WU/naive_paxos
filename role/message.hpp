@@ -2,13 +2,13 @@
 // Created by Jiacheng Wu on 11/7/22.
 //
 
-#ifndef PAXOS_MESSAGE_H
-#define PAXOS_MESSAGE_H
+#ifndef PAXOS_MESSAGE_HPP
+#define PAXOS_MESSAGE_HPP
 
 #include <cstdint>
 
 #include <memory>
-
+#include "magic_enum.hpp"
 // #include "boost/serialization/serialization.hpp"
 
 
@@ -78,20 +78,8 @@ struct Message {
     MessageType type = MessageType::UNDEFINED;
 
     std::uint32_t sequence = 0; // For Paxos command sequence is mainly for Paxos Instances
+    std::uint32_t from_id = 0; // use from id to maintain, as well as the id from client
 
-    union {
-        std::uint32_t from_id = 0; // use from id to maintain, as well as the id from client
-        /**
-         * In fact, we may not necessary to maintain client id
-         * But have this one is better to maintain only-once semantics
-         * Though required clients have different id
-         * Meanwhile, the client endpoints can also be attached with client_id
-         * Though the client endpoints could also be attached with sequence
-         * We should maintain the client endpoints in Server with map
-         * In real, the client_id could at least be uint64_t with MAC and PORT
-         **/
-        std::uint32_t leader_id; // For Redirect Message
-    };
     Proposal proposal;
     union {
         std::uint32_t additional_field = 0;
@@ -188,4 +176,4 @@ struct LearnerState {
     }
 };
 
-#endif //PAXOS_MESSAGE_H
+#endif //PAXOS_MESSAGE_HPP

@@ -6,7 +6,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/trim_all.hpp>
 #include <boost/lexical_cast.hpp>
-#include "server.h"
+#include "server.hpp"
 
 int main(int argc, char* argv[]) {
 //    auto k = std::move(do_nothing_handler);

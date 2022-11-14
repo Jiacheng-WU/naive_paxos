@@ -2,10 +2,10 @@
 // Created by Jiacheng Wu on 10/31/22.
 //
 
-#ifndef PAXOS_ACCEPTOR_H
-#define PAXOS_ACCEPTOR_H
+#ifndef PAXOS_ACCEPTOR_HPP
+#define PAXOS_ACCEPTOR_HPP
 
-#include "message.h"
+#include "message.hpp"
 #include <memory>
 #include <mutex>
 
@@ -61,4 +61,4 @@ class Acceptor {
 };
 
 
-#endif //PAXOS_ACCEPTOR_H
+#endif //PAXOS_ACCEPTOR_HPP

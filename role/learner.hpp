@@ -2,14 +2,14 @@
 // Created by Jiacheng Wu on 10/31/22.
 //
 
-#ifndef PAXOS_LEARNER_H
-#define PAXOS_LEARNER_H
+#ifndef PAXOS_LEARNER_HPP
+#define PAXOS_LEARNER_HPP
 
 
 #include <mutex>
 #include <boost/dynamic_bitset.hpp>
-#include "message.h"
-#include "config.h"
+#include "message.hpp"
+#include "config.hpp"
 
 class Instance;
 
@@ -26,6 +26,8 @@ class Learner {
     }
     // For distinguished learner
     std::unique_ptr<Message> on_accepted(std::unique_ptr<Message> accepted);
+
+    std::unique_ptr<Message> on_rejected(std::unique_ptr<Message> accepted);
 
     void inform(std::unique_ptr<Message> inform);
 
@@ -53,4 +55,4 @@ class Learner {
 };
 
 
-#endif //PAXOS_LEARNER_H
+#endif //PAXOS_LEARNER_HPP

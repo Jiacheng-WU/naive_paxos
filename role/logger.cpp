@@ -2,8 +2,8 @@
 // Created by Jiacheng Wu on 11/10/22.
 //
 
-#include "logger.h"
-#include "server.h"
+#include "logger.hpp"
+#include "server.hpp"
 bool Logger::recover_from_log(std::vector<std::uint32_t> &hole_sequence, uint32_t &max_sequence)  {
     if (acceptor_log_filesize == 0 && learner_log_filesize == 0) {
         return false;

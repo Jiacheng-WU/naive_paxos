@@ -2,7 +2,7 @@
 // Created by Jiacheng Wu on 11/12/22.
 //
 
-#include "config.h"
+#include "config.hpp"
 #include "fmt/core.h"
 bool Config::load_config(std::filesystem::path json_file) {
     return false;

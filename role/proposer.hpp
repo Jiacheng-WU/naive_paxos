@@ -2,16 +2,16 @@
 // Created by Jiacheng Wu on 10/31/22.
 //
 
-#ifndef PAXOS_PROPOSER_H
-#define PAXOS_PROPOSER_H
+#ifndef PAXOS_PROPOSER_HPP
+#define PAXOS_PROPOSER_HPP
 
 
-#include "message.h"
+#include "message.hpp"
 #include <memory>
 #include <mutex>
 #include <bitset>
 #include <boost/dynamic_bitset.hpp>
-#include "config.h"
+#include "config.hpp"
 class Instance;
 
 class Proposer {
@@ -58,4 +58,4 @@ class Proposer {
 };
 
 
-#endif //PAXOS_PROPOSER_H
+#endif //PAXOS_PROPOSER_HPP

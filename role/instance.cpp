@@ -2,8 +2,8 @@
 // Created by Jiacheng Wu on 11/7/22.
 //
 
-#include "instance.h"
-#include "server.h"
+#include "instance.hpp"
+#include "server.hpp"
 Instance::Instance(std::uint32_t seq, PaxosServer *server) :
         seq(seq), server(server), proposer(this), acceptor(this), learner(this),
         deadline_timer(server->socket.get_executor()) {

@@ -2,13 +2,13 @@
 // Created by Jiacheng Wu on 11/12/22.
 //
 
-#ifndef PAXOS_CLIENT_H
-#define PAXOS_CLIENT_H
+#ifndef PAXOS_CLIENT_HPP
+#define PAXOS_CLIENT_HPP
 
 #include <boost/asio.hpp>
-#include "config.h"
-#include "network.h"
-#include "message.h"
+#include "config.hpp"
+#include "network.hpp"
+#include "message.hpp"
 
 
 class client
@@ -195,4 +195,4 @@ class PaxosClient {
 };
 
 
-#endif //PAXOS_CLIENT_H
+#endif //PAXOS_CLIENT_HPP

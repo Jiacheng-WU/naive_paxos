@@ -2,17 +2,17 @@
 // Created by Jiacheng Wu on 11/7/22.
 //
 
-#ifndef PAXOS_INSTANCE_H
-#define PAXOS_INSTANCE_H
+#ifndef PAXOS_INSTANCE_HPP
+#define PAXOS_INSTANCE_HPP
 
 #include <cstdint>
 #include <map>
 #include <mutex>
 #include <shared_mutex>
 #include <atomic>
-#include "proposer.h"
-#include "acceptor.h"
-#include "learner.h"
+#include "proposer.hpp"
+#include "acceptor.hpp"
+#include "learner.hpp"
 
 class PaxosServer;
 
@@ -42,4 +42,4 @@ class Instances {
 };
 
 
-#endif //PAXOS_INSTANCE_H
+#endif //PAXOS_INSTANCE_HPP

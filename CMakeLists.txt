@@ -4,7 +4,7 @@ project(paxos)
 set(CMAKE_CXX_STANDARD 20)
 
 find_package(Protobuf REQUIRED)
-find_package(Boost REQUIRED system serialization)
+find_package(Boost REQUIRED system serialization log)
 message(${Boost_INCLUDE_DIRS})
 include_directories(${Boost_INCLUDE_DIRS})
 

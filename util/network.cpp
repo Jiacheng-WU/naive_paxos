@@ -2,7 +2,7 @@
 // Created by Jiacheng Wu on 10/8/22.
 //
 
-#include "network.h"
+#include "network.hpp"
 
 
 uint64_t get_uint64_from_udp_ipv4_endpoint(std::unique_ptr<boost::asio::ip::udp::endpoint>& endpoint) {

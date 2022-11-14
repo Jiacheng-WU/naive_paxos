@@ -2,8 +2,8 @@
 // Created by Jiacheng Wu on 10/8/22.
 //
 
-#ifndef PAXOS_NETWORK_H
-#define PAXOS_NETWORK_H
+#ifndef PAXOS_NETWORK_HPP
+#define PAXOS_NETWORK_HPP
 
 #include <boost/asio.hpp>
 #include <boost/serialization/serialization.hpp>
@@ -14,7 +14,7 @@
 #include <boost/log/trivial.hpp>
 #include <boost/log/expressions.hpp>
 #include <iostream>
-#include "message.h"
+#include "message.hpp"
 #include "fmt/core.h"
 #include <random>
 
@@ -67,7 +67,7 @@ class Connection {
                     return;
                 } else {
                     // Handle errors
-                    std::cerr << fmt::format("Failed to send with error {}", paras.ec.message());
+                    BOOST_LOG_TRIVIAL(warning) << fmt::format("Failed to send with error {}", paras.ec.message());
                     // Won't resend But still won't failed
                 }
             }
@@ -124,4 +124,4 @@ class Connection {
 };
 
 
-#endif //PAXOS_NETWORK_H
+#endif //PAXOS_NETWORK_HPP
