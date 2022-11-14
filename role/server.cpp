@@ -14,6 +14,7 @@ void PaxosServer::dispatch_received_message(std::unique_ptr<Message> m_p, std::u
         case MessageType::ACCEPT:
         case MessageType::DENIAL:
         case MessageType::ACCEPTED:
+        case MessageType::INFORM:
         case MessageType::LEARN:
         case MessageType::UNDECIDE:
             // For Paxos Protocal
@@ -95,6 +96,7 @@ void PaxosServer::dispatch_paxos_message(std::unique_ptr<Message> m_p,
             if (!executed_commands.empty()) {
                 for(auto&& cmd: executed_commands) {
                     if (cmd->from_id == id) {
+                        fmt::print("Before RESPONSE\n");
                         std::unique_ptr<Message> command = std::move(cmd);
                         std::unique_ptr<Message> resubmit = this->response(std::move(command));
                         if (resubmit != nullptr) {
@@ -267,8 +269,8 @@ std::unique_ptr<Message> PaxosServer::response(std::unique_ptr<Message> response
     }
 
     std::unique_ptr<boost::asio::ip::udp::endpoint> client_endpoints = get_udp_ipv4_endpoint_from_uint64_t(response->proposal.value.client_id);
+    fmt::print("Send to clients {} {}", client_endpoints->address().to_string(), resubmit == nullptr);
     connect->do_send(std::move(response), std::move(client_endpoints), do_nothing_handler);
-
     return resubmit;
 }
 
@@ -279,6 +281,7 @@ std::vector<std::unique_ptr<Message>> PaxosServer::try_execute_commands(std::uni
 
     std::vector<std::unique_ptr<Message>> executed_commands;
     if (command->sequence == executed_cmd_seq + 1) {
+        fmt::print("Before Execute Command\n");
         std::unique_ptr<Message> response = execute_command(std::move(command));
         if (response != nullptr) {
             executed_commands.emplace_back(std::move(response));
@@ -289,7 +292,7 @@ std::vector<std::unique_ptr<Message>> PaxosServer::try_execute_commands(std::uni
 //        }
 
         // Try execute the following command until we read a hole
-        while(true) {
+        while(!cmd_min_set.empty()) {
             std::size_t current_wait_sequence = (*cmd_min_set.begin())->sequence;
             if (current_wait_sequence == executed_cmd_seq + 1) {
                 std::unique_ptr<Message> next_command = std::move(cmd_min_set.extract(cmd_min_set.begin()).value());

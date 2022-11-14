@@ -10,6 +10,9 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/iostreams/stream.hpp>
+#include <boost/log/core.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/log/expressions.hpp>
 #include <iostream>
 #include "message.h"
 #include "fmt/core.h"
@@ -63,9 +66,9 @@ class Connection {
                                      inner_retry(this->times - 1, this->connect, std::move(handler)));
                     return;
                 } else {
-                        // Handle errors
-                        std::cerr << fmt::format("Failed to send with error {}", paras.ec.message());
-                        // Won't resend But still won't failed
+                    // Handle errors
+                    std::cerr << fmt::format("Failed to send with error {}", paras.ec.message());
+                    // Won't resend But still won't failed
                 }
             }
         };
