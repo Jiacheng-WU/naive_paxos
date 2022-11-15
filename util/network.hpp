@@ -49,8 +49,6 @@ class Connection {
     // In UDP, we do not need to consider whether the datagram is sent partially
     // the datagram only could be sent entirely or just dropped
 
-    const std::uint32_t SEND_RETRY_TIMES = 1;
-
     void resend_if_do_send_failed(std::unique_ptr<Message> m_p, std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint, Handler handler) {
         struct inner_retry {
             std::uint32_t times;
@@ -81,6 +79,17 @@ class Connection {
 
     void do_receive(std::unique_ptr<Message> m_p, Handler handler);
     boost::asio::ip::udp::socket& socket_;
+
+    void set_send_retry_time(std::uint32_t retry_times) {
+        SEND_RETRY_TIMES = retry_times;
+    }
+
+    std::uint32_t get_send_retry_time() {
+        return SEND_RETRY_TIMES;
+    }
+
+  private:
+    std::uint32_t SEND_RETRY_TIMES = 1;
 };
 
 

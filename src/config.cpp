@@ -1,12 +1,70 @@
 //
 // Created by Jiacheng Wu on 11/12/22.
 //
-
-#include "config.hpp"
 #include "fmt/core.h"
-bool Config::load_config(std::filesystem::path json_file) {
-    assert("Unsupported");
-    return false;
+#include <fstream>
+#include "config.hpp"
+
+#include "json.hpp"
+#include "magic_enum.hpp"
+
+static boost::log::trivial::severity_level get_boost_log_level_from_str(std::string& log_level) {
+    if (log_level == std::string("trace")) {
+        return boost::log::trivial::trace;
+    } else if (log_level == std::string("debug")) {
+        return boost::log::trivial::debug;
+    } else if (log_level == std::string("info")) {
+        return boost::log::trivial::info;
+    } else if (log_level == std::string("warning")) {
+        return boost::log::trivial::warning;
+    } else if (log_level == std::string("error")) {
+        return boost::log::trivial::error;
+    } else if (log_level == std::string("fatal")) {
+        return boost::log::trivial::fatal;
+    } else {
+        BOOST_LOG_TRIVIAL(error) << fmt::format("Not Valid log_level {}, Use info!!!\n",
+                                                log_level);
+        return boost::log::trivial::info;
+    }
+}
+
+bool Config::load_config(std::filesystem::path json_filepath) {
+    if (! std::filesystem::exists(json_filepath)) {
+        BOOST_LOG_TRIVIAL(warning) << fmt::format("Cannot Find Config file {}, Use Default Config!!!\n",
+                                                json_filepath.generic_string());
+        load_config();
+        return false;
+    }
+    std::ifstream f(json_filepath);
+    nlohmann::json data = nlohmann::json::parse(f);
+    if (data.contains("log_level")) {
+        std::string log_level_config = data["log_level"];
+        this->log_level = get_boost_log_level_from_str(log_level_config);
+    } else {
+        BOOST_LOG_TRIVIAL(error) << fmt::format("{} do not contain log_level, Use info!!!\n",
+                                                json_filepath.generic_string());
+    }
+    this->after_prepare_milliseconds = data.at("after_prepare_milliseconds").get<std::uint32_t>();
+    this->after_accept_milliseconds = data.at("after_accept_milliseconds").get<std::uint32_t>();
+    this->client_retry_milliseconds = data.at("client_retry_milliseconds").get<std::uint32_t>();
+    this->network_send_retry_times = data.at("network_send_retry_times").get<std::uint32_t>();
+    this->need_recovery = data.at("need_recovery").get<bool>();
+    if (data.contains("id_addr_map") && data["id_addr_map"].is_array()) {
+        nlohmann::json id_addr_map_config = data["id_addr_map"];
+        for (auto& id_addr : id_addr_map_config) {
+            std::uint32_t id = id_addr.at("id").get<std::uint32_t>();
+            std::string ip = id_addr.at("ip").get<std::string>();
+            std::uint32_t port = id_addr.at("port").get<std::uint32_t>();
+            server_id_to_addr_map[id] = server_addr_t(boost::asio::ip::make_address(ip), port);
+        }
+    } else {
+        BOOST_LOG_TRIVIAL(error) << fmt::format("{} do not contain id address map array !!!, cannot execute then\n",
+                                                json_filepath.generic_string());
+        exit(1);
+    }
+    number_of_nodes = server_id_to_addr_map.size();
+
+    return true;
 }
 
 bool Config::load_config() {
@@ -27,4 +85,17 @@ std::filesystem::path Config::get_learner_file_path(Config::server_id_t server_i
 
 std::filesystem::path Config::get_acceptor_file_path(Config::server_id_t server_id) {
     return std::filesystem::path(fmt::format("./server{}_acceptor.log", server_id));
+}
+
+void Config::log_detail_infos() const {
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("{} : {}, ", "log_level", magic_enum::enum_name(log_level));
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("{} : {}, ", "after_prepare_milliseconds", after_prepare_milliseconds);
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("{} : {}, ", "after_accept_milliseconds", after_accept_milliseconds);
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("{} : {}, ", "client_retry_milliseconds", client_retry_milliseconds);
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("{} : {}, ", "network_send_retry_times", network_send_retry_times);
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("{} : {} -- ", "server_id_to_addr_map", server_id_to_addr_map.size());
+    for (auto&& [id, addr]: server_id_to_addr_map) {
+        BOOST_LOG_TRIVIAL(debug) << fmt::format("\t id : {} , addr: {}:{} ",
+                                                id, addr.address().to_string(), addr.port());
+    }
 }

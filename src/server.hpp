@@ -29,10 +29,12 @@ class PaxosServer {
             {
         this->id = id;
 //        this->leader_id = 0;
-        this->number_of_nodes = config->get_number_of_nodes();
         // this->submit_cmd_seq = 0;
         this->executed_cmd_seq = 0;
         this->config = std::move(config);
+        this->number_of_nodes = this->config->number_of_nodes;
+        // Since we do not want connect observe the Config thus just set here.
+        this->connect->set_send_retry_time(this->config->network_send_retry_times);
     }
 
     ~PaxosServer() = default;

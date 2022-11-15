@@ -11,11 +11,11 @@
 #include <boost/log/trivial.hpp>
 #include <boost/log/expressions.hpp>
 
-void init()
+void init(boost::log::trivial::severity_level log_level)
 {
     boost::log::core::get()->set_filter
             (
-                    boost::log::trivial::severity >= boost::log::trivial::info
+                    boost::log::trivial::severity >= log_level
             );
 }
 
@@ -25,29 +25,32 @@ int main(int argc, char* argv[]) {
 
 
     if (argc == 1 || argc >= 4) {
-        std::cout << fmt::format("{} {} {}\n", "program_name", "id", "(recovery)");
+        std::cout << fmt::format("{} {} {}\n", "program_name", "id", "(config path)");
         return 0;
     }
 
-    std::unique_ptr<Config> config = std::make_unique<Config>();
-    config->load_config();
+    std::string config_filepath_str = "../config.json";
+    if (argc == 3) {
+        config_filepath_str = std::string(argv[2]);
+    }
 
-    init();
+    std::unique_ptr<Config> config = std::make_unique<Config>();
+    config->load_config(std::filesystem::path(config_filepath_str));
+
+    init(config->log_level);
+
+    config->log_detail_infos();
 
     std::uint32_t current_id = 0;
     try {
         current_id = boost::lexical_cast<uint32_t>(argv[1]);
         assert(current_id < config->number_of_nodes);
     } catch (boost::bad_lexical_cast& err) {
-        std::cout << fmt::format("{} {}\n", "program_name", "id");
+        std::cout << fmt::format("{} {} {}\n", "program_name", "id", "(config path)");
         return 0;
     }
 
-    bool need_recovery = false;
-    if (argc == 3 && std::string(argv[2]) == "recovery") {
-        need_recovery = true;
-    }
-
+    bool need_recovery = config->need_recovery;
     BOOST_LOG_TRIVIAL(debug) << fmt::format("Server {} : {}\n", current_id, need_recovery? "recovery": "no recovery");
 
     boost::asio::io_context io_context;

@@ -10,6 +10,10 @@
 #include <boost/asio.hpp>
 #include <boost/json.hpp>
 #include <filesystem>
+#include <sstream>
+#include <boost/log/core.hpp>
+#include <boost/log/trivial.hpp>
+
 struct Config {
     using server_id_t = std::uint32_t;
     using server_addr_t = boost::asio::ip::udp::endpoint;
@@ -19,16 +23,22 @@ struct Config {
     std::uint32_t after_accept_milliseconds = 2000;
 
     std::uint32_t client_retry_milliseconds = 4000;
+    std::uint32_t network_send_retry_times = 1;
+
+    bool need_recovery = false;
 
     std::filesystem::path get_acceptor_file_path(server_id_t server_id);
     std::filesystem::path get_learner_file_path(server_id_t server_id);
 
+    boost::log::trivial::severity_level log_level = boost::log::trivial::info;
+
     std::map<server_id_t, server_addr_t> server_id_to_addr_map;
 
-    std::uint32_t get_number_of_nodes() const {
-        return number_of_nodes;
-    };
+//    std::uint32_t get_number_of_nodes() const {
+//        return number_of_nodes;
+//    };
 
+    void log_detail_infos() const;
 
     bool load_config();
 
