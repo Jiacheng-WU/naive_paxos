@@ -1,14 +1,14 @@
 //
 // Created by Jiacheng Wu on 11/12/22.
 //
-#include "fmt/core.h"
+
 #include <fstream>
 #include "config.hpp"
-
+#include "fmt/core.h"
 #include "json.hpp"
 #include "magic_enum.hpp"
 
-static boost::log::trivial::severity_level get_boost_log_level_from_str(std::string& log_level) {
+static boost::log::trivial::severity_level get_boost_log_level_from_str(std::string &log_level) {
     if (log_level == std::string("trace")) {
         return boost::log::trivial::trace;
     } else if (log_level == std::string("debug")) {
@@ -29,9 +29,9 @@ static boost::log::trivial::severity_level get_boost_log_level_from_str(std::str
 }
 
 bool Config::load_config(std::filesystem::path json_filepath) {
-    if (! std::filesystem::exists(json_filepath)) {
+    if (!std::filesystem::exists(json_filepath)) {
         BOOST_LOG_TRIVIAL(warning) << fmt::format("Cannot Find Config file {}, Use Default Config!!!\n",
-                                                json_filepath.generic_string());
+                                                  json_filepath.generic_string());
         load_config();
         return false;
     }
@@ -52,7 +52,7 @@ bool Config::load_config(std::filesystem::path json_filepath) {
     this->at_most_once = data.at("at_most_once").get<bool>();
     if (data.contains("id_addr_map") && data["id_addr_map"].is_array()) {
         nlohmann::json id_addr_map_config = data["id_addr_map"];
-        for (auto& id_addr : id_addr_map_config) {
+        for (auto &id_addr: id_addr_map_config) {
             std::uint32_t id = id_addr.at("id").get<std::uint32_t>();
             std::string ip = id_addr.at("ip").get<std::string>();
             std::uint32_t port = id_addr.at("port").get<std::uint32_t>();
@@ -95,7 +95,7 @@ void Config::log_detail_infos() const {
     BOOST_LOG_TRIVIAL(debug) << fmt::format("{} : {}, ", "client_retry_milliseconds", client_retry_milliseconds);
     BOOST_LOG_TRIVIAL(debug) << fmt::format("{} : {}, ", "network_send_retry_times", network_send_retry_times);
     BOOST_LOG_TRIVIAL(debug) << fmt::format("{} : {} -- ", "server_id_to_addr_map", server_id_to_addr_map.size());
-    for (auto&& [id, addr]: server_id_to_addr_map) {
+    for (auto &&[id, addr]: server_id_to_addr_map) {
         BOOST_LOG_TRIVIAL(debug) << fmt::format("\t id : {} , addr: {}:{} ",
                                                 id, addr.address().to_string(), addr.port());
     }

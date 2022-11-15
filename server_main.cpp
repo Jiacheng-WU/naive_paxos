@@ -6,20 +6,19 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/trim_all.hpp>
 #include <boost/lexical_cast.hpp>
-#include "server.hpp"
 #include <boost/log/core.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/log/expressions.hpp>
+#include "server.hpp"
 
-void init(boost::log::trivial::severity_level log_level)
-{
+void init(boost::log::trivial::severity_level log_level) {
     boost::log::core::get()->set_filter
             (
                     boost::log::trivial::severity >= log_level
             );
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
 //    auto k = std::move(do_nothing_handler);
 //    do_nothing_handler(nullptr, nullptr, {});
 
@@ -45,20 +44,20 @@ int main(int argc, char* argv[]) {
     try {
         current_id = boost::lexical_cast<uint32_t>(argv[1]);
         assert(current_id < config->number_of_nodes);
-    } catch (boost::bad_lexical_cast& err) {
+    } catch (boost::bad_lexical_cast &err) {
         std::cout << fmt::format("{} {} {}\n", "program_name", "id", "(config path)");
         return 0;
     }
 
     bool need_recovery = config->need_recovery;
-    BOOST_LOG_TRIVIAL(debug) << fmt::format("Server {} : {}\n", current_id, need_recovery? "recovery": "no recovery");
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("Server {} : {}\n", current_id, need_recovery ? "recovery" : "no recovery");
 
     boost::asio::io_context io_context;
 
     PaxosServer server(io_context, current_id, std::move(config));
 
     boost::asio::signal_set signals(io_context, SIGINT | SIGTERM);
-    signals.async_wait([&server, &io_context](const boost::system::error_code& error, int signal_number ) {
+    signals.async_wait([&server, &io_context](const boost::system::error_code &error, int signal_number) {
         server.stop();
         io_context.stop();
         BOOST_LOG_TRIVIAL(debug) << fmt::format("Server {} : stop\n", server.get_id());

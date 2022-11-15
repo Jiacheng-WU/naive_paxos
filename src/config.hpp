@@ -7,10 +7,9 @@
 
 #include <cstdint>
 #include <map>
-#include <boost/asio.hpp>
-#include <boost/json.hpp>
 #include <filesystem>
 #include <sstream>
+#include <boost/asio.hpp>
 #include <boost/log/core.hpp>
 #include <boost/log/trivial.hpp>
 
@@ -29,6 +28,7 @@ struct Config {
     bool at_most_once = false;
 
     std::filesystem::path get_acceptor_file_path(server_id_t server_id);
+
     std::filesystem::path get_learner_file_path(server_id_t server_id);
 
     std::filesystem::path get_client_file_path(std::uint16_t port);

@@ -8,15 +8,18 @@
 
 #include <mutex>
 #include <boost/dynamic_bitset.hpp>
-#include "message.hpp"
+
 #include "config.hpp"
+#include "message.hpp"
+
 
 class Instance;
 
 class Learner {
   public:
     friend class Instance;
-    Learner(Instance* inst);
+
+    Learner(Instance *inst);
 
     void recover_from_state(LearnerState state) {
         this->highest_accepted_proposal_number = state.final_informed_proposal_number;
@@ -24,6 +27,7 @@ class Learner {
         learned_majority_consensus = true;
         informed = true;
     }
+
     // For distinguished learner
     std::unique_ptr<Message> on_accepted(std::unique_ptr<Message> accepted);
 
@@ -47,12 +51,12 @@ class Learner {
         return informed;
     }
 
-    std::uint32_t get_learned_proposal_number () {
+    std::uint32_t get_learned_proposal_number() {
         assert((learned_majority_consensus || informed) && "Not Informed");
         return highest_accepted_proposal_number;
     }
 
-    ProposalValue get_learned_proposal_value () {
+    ProposalValue get_learned_proposal_value() {
         assert((learned_majority_consensus || informed) && "Not Informed");
         return highest_accepted_proposal_value;
     }
@@ -61,13 +65,13 @@ class Learner {
 
     mutable std::mutex learner_mutex;
 
-    std::uint32_t highest_accepted_proposal_number {0};
-    ProposalValue highest_accepted_proposal_value {};
+    std::uint32_t highest_accepted_proposal_number{0};
+    ProposalValue highest_accepted_proposal_value{};
     boost::dynamic_bitset<std::uint8_t> current_accepted_acceptors;
     bool learned_majority_consensus;
     bool informed;
 
-    Instance* instance;
+    Instance *instance;
 };
 
 

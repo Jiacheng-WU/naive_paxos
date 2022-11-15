@@ -5,28 +5,30 @@
 #ifndef PAXOS_SERVER_HPP
 #define PAXOS_SERVER_HPP
 
-#include "network.hpp"
-#include "instance.hpp"
-#include "fmt/core.h"
-#include "config.hpp"
-#include "logger.hpp"
 #include <iostream>
 #include <unordered_map>
 #include <queue>
 #include <set>
+
+#include "config.hpp"
+#include "logger.hpp"
+#include "network.hpp"
+#include "instance.hpp"
+
+#include "fmt/core.h"
+
 class PaxosServer {
   public:
     // We would like to load config outside
-    PaxosServer(boost::asio::io_context& io_context, std::uint32_t id, std::unique_ptr<Config> config):
+    PaxosServer(boost::asio::io_context &io_context, std::uint32_t id, std::unique_ptr<Config> config) :
             instances(this),
             socket(io_context,
                    boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(),
-                                                              config->get_addr_by_id(id)->port())),
+                                                  config->get_addr_by_id(id)->port())),
             connect(std::make_unique<Connection>(socket)),
 //            random_resubmit_timer(socket.get_executor()),
-            logger(std::make_unique<Logger>(config->get_acceptor_file_path(id), config->get_learner_file_path(id), this))
-
-            {
+            logger(std::make_unique<Logger>(config->get_acceptor_file_path(id), config->get_learner_file_path(id),
+                                            this)) {
         this->id = id;
 //        this->leader_id = 0;
         // this->submit_cmd_seq = 0;
@@ -43,11 +45,14 @@ class PaxosServer {
 
     ~PaxosServer() = default;
 
-    std::uint32_t get_id() const {return id;}
-    std::uint32_t get_number_of_nodes() const {return number_of_nodes;}
+    std::uint32_t get_id() const { return id; }
+
+    std::uint32_t get_number_of_nodes() const { return number_of_nodes; }
 
 
-    Handler handler_wrapper(void (PaxosServer::*p)(std::unique_ptr<Message> m_p, std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint, asio_handler_paras paras)) {
+    Handler handler_wrapper(void (PaxosServer::*p)(std::unique_ptr<Message> m_p,
+                                                   std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint,
+                                                   asio_handler_paras paras)) {
         return std::bind_front(p, this);
     }
 
@@ -122,11 +127,15 @@ class PaxosServer {
 //        reset_nonleader_heartbeat();
 //    }
 
-    void dispatch_received_message(std::unique_ptr<Message> m_p, std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint, asio_handler_paras paras);
+    void
+    dispatch_received_message(std::unique_ptr<Message> m_p, std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint,
+                              asio_handler_paras paras);
 
-    void dispatch_paxos_message(std::unique_ptr<Message> m_p, std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint, asio_handler_paras paras);
+    void dispatch_paxos_message(std::unique_ptr<Message> m_p, std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint,
+                                asio_handler_paras paras);
 
-    void dispatch_server_message(std::unique_ptr<Message> m_p, std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint, asio_handler_paras paras);
+    void dispatch_server_message(std::unique_ptr<Message> m_p, std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint,
+                                 asio_handler_paras paras);
 
 //    Connection& get_connect() {
 //        return connect;
@@ -148,11 +157,11 @@ class PaxosServer {
   private:
 
     std::unique_ptr<Message> execute_command(std::unique_ptr<Message> command);
+
     std::unique_ptr<Message> response(std::unique_ptr<Message> response);
 
     std::uint32_t id;
     std::uint32_t number_of_nodes;
-
 
 
 //    std::uint32_t get_instance_sequence() {
@@ -177,17 +186,17 @@ class PaxosServer {
 
     class Message_Command_Less {
       public:
-        bool operator()(const std::unique_ptr<Message>& __x, const std::unique_ptr<Message>& __y) const
-        {return __x->sequence < __y->sequence;}
+        bool operator()(const std::unique_ptr<Message> &__x, const std::unique_ptr<Message> &__y) const {
+            return __x->sequence < __y->sequence;
+        }
     };
 
     std::set<std::unique_ptr<Message>, Message_Command_Less> cmd_min_set;
 
 
     struct hash_pair {
-        template <class T1, class T2>
-        size_t operator()(const std::pair<T1, T2>& p) const
-        {
+        template<class T1, class T2>
+        size_t operator()(const std::pair<T1, T2> &p) const {
             auto hash1 = std::hash<T1>{}(p.first);
             auto hash2 = std::hash<T2>{}(p.second);
 
@@ -198,6 +207,7 @@ class PaxosServer {
             return hash1;
         }
     };
+
     std::unordered_map<std::pair<client_id_t, client_once_t>, std::unique_ptr<Message>, hash_pair> client_ops_to_response;
 
     // connect should behave after socket for initialization orders

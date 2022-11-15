@@ -5,20 +5,21 @@
 #ifndef PAXOS_CLIENT_HPP
 #define PAXOS_CLIENT_HPP
 
+#include <cstring>
+#include <fstream>
 #include <boost/asio.hpp>
 #include "config.hpp"
-#include "network.hpp"
-#include "message.hpp"
 #include "sync.hpp"
-#include <fstream>
-#include <cstring>
+#include "message.hpp"
+#include "network.hpp"
+
 
 class PaxosClient {
   public:
-    PaxosClient(std::unique_ptr<Config> config, std::uint16_t port = 0):
-        config(std::move(config)),
-        socket(io_context,
-               boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), port)){
+    PaxosClient(std::unique_ptr<Config> config, std::uint16_t port = 0) :
+            config(std::move(config)),
+            socket(io_context,
+                   boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), port)) {
         local_port = socket.local_endpoint().port();
         BOOST_LOG_TRIVIAL(info) << fmt::format("The Clients port number is {}\n", local_port);
         client_op_id = 0;
@@ -43,15 +44,13 @@ class PaxosClient {
     }
 
     static void handle_receive(
-            const boost::system::error_code& error, std::size_t length,
-            boost::system::error_code* out_error, std::size_t* out_length)
-    {
+            const boost::system::error_code &error, std::size_t length,
+            boost::system::error_code *out_error, std::size_t *out_length) {
         *out_error = error;
         *out_length = length;
     }
 
-    void run(std::chrono::steady_clock::duration timeout)
-    {
+    void run(std::chrono::steady_clock::duration timeout) {
         // Restart the io_context, as it may have been left in the "stopped" state
         // by a previous operation.
         io_context.restart();
@@ -65,8 +64,7 @@ class PaxosClient {
         // If the asynchronous operation completed successfully then the io_context
         // would have been stopped due to running out of work. If it was not
         // stopped, then the io_context::run_for call must have timed out.
-        if (!io_context.stopped())
-        {
+        if (!io_context.stopped()) {
             // Cancel the outstanding asynchronous operation.
             socket.cancel();
 
@@ -75,15 +73,15 @@ class PaxosClient {
         }
     }
 
-    std::size_t receive(const boost::asio::mutable_buffer& buffer,
+    std::size_t receive(const boost::asio::mutable_buffer &buffer,
                         std::chrono::steady_clock::duration timeout,
-                        boost::system::error_code& error)
-    {
+                        boost::system::error_code &error) {
         // Start the asynchronous operation. The handle_receive function used as a
         // callback will update the error and length variables.
         std::size_t length = 0;
         socket.async_receive(boost::asio::buffer(buffer),
-                              std::bind(&PaxosClient::handle_receive, std::placeholders::_1, std::placeholders::_2, &error, &length));
+                             std::bind(&PaxosClient::handle_receive, std::placeholders::_1, std::placeholders::_2,
+                                       &error, &length));
 
         // Run the operation until it completes, or until the timeout.
         run(timeout);
@@ -93,7 +91,7 @@ class PaxosClient {
 
 
     boost::asio::ip::udp::endpoint get_next_server_endpoint() {
-        server_id ++;
+        server_id++;
         server_id %= config->number_of_nodes;
         return config->server_id_to_addr_map[server_id];
     }
@@ -165,6 +163,7 @@ class PaxosClient {
         client_log_file.write(client_op_id_buffer, sizeof(std::uint32_t));
         full_sync(client_log_file);
     }
+
     std::uint32_t read_client_op_id() {
         client_log_file.seekg(0);
         client_log_file.read(client_op_id_buffer, sizeof(std::uint32_t));

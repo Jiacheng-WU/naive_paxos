@@ -3,15 +3,16 @@
 //
 
 #include <iostream>
-#include "client.hpp"
 #include <fstream>
-#include "magic_enum.hpp"
 #include <chrono>
 #include <thread>
 #include <vector>
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/trim_all.hpp>
 #include <boost/lexical_cast.hpp>
+
+#include "magic_enum.hpp"
+#include "client.hpp"
 
 std::tuple<std::uint16_t, std::string, std::string> parse_argument(int argc, char *argv[]) {
     std::uint16_t port_number = 0;

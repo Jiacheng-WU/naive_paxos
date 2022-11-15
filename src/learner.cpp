@@ -5,7 +5,7 @@
 #include "learner.hpp"
 #include "server.hpp"
 
-Learner::Learner(Instance *inst): instance(inst) {
+Learner::Learner(Instance *inst) : instance(inst) {
     current_accepted_acceptors.resize(this->instance->server->get_number_of_nodes(), false);
     learned_majority_consensus = false;
     informed = false;
@@ -67,10 +67,11 @@ void Learner::inform(std::unique_ptr<Message> inform) {
 
     inform->from_id = this->instance->server->get_id();
 
-    for(std::uint32_t node_id = 0; node_id < this->instance->server->get_number_of_nodes(); node_id++) {
+    for (std::uint32_t node_id = 0; node_id < this->instance->server->get_number_of_nodes(); node_id++) {
         // We need to clone the unique_ptr<Message> and just send to all nodes;
         std::unique_ptr<Message> inform_copy = inform->clone();
-        std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint = this->instance->server->config->get_addr_by_id(node_id);
+        std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint = this->instance->server->config->get_addr_by_id(
+                node_id);
         BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Learner {} Async Send Inform to Learner {}\n",
                                                 inform_copy->sequence, this->instance->server->get_id(), node_id);
         this->instance->server->connect->do_send(std::move(inform_copy), std::move(endpoint), do_nothing_handler);

@@ -5,7 +5,7 @@
 #include "network.hpp"
 
 
-uint64_t get_uint64_from_udp_ipv4_endpoint(std::unique_ptr<boost::asio::ip::udp::endpoint>& endpoint) {
+uint64_t get_uint64_from_udp_ipv4_endpoint(std::unique_ptr<boost::asio::ip::udp::endpoint> &endpoint) {
     boost::asio::ip::address_v4::uint_type ip = endpoint->address().to_v4().to_uint();
     uint32_t port = endpoint->port();
     uint64_t result = uint64_t(ip) << 32 | port;
@@ -25,25 +25,26 @@ std::uint16_t get_udp_port_from_uint64_t(uint64_t compressed) {
 
 std::uint32_t get_random_number(std::uint32_t begin, std::uint32_t end) {
     std::random_device rd;
-    std::uniform_int_distribution<std::uint32_t> ud(begin,end);
+    std::uniform_int_distribution<std::uint32_t> ud(begin, end);
     std::mt19937 mt(rd());
     return ud(mt);
 }
+
 bool is_registered_port(std::uint16_t port_number) {
     return port_number >= 1024 && port_number <= 49151;
 }
 
 void Connection::do_send(std::unique_ptr<Message> m_p,
                          std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint,
-                         Handler handler)
-{
+                         Handler handler) {
     std::unique_ptr<MessageBuffer> out_buf = std::make_unique<MessageBuffer>();
     m_p->serialize_to(out_buf->buffer);
     std::shared_ptr<boost::asio::ip::udp::endpoint> shared_endpoint =
             std::make_shared<boost::asio::ip::udp::endpoint>(*endpoint.release());
     auto var_to_force_get_buffer_ptr_before_move = boost::asio::buffer(out_buf->buffer);
     socket_.async_send_to(var_to_force_get_buffer_ptr_before_move, *shared_endpoint,
-                          [this, m_p = std::move(m_p), shared_endpoint = shared_endpoint, handler = std::move(handler), out_buf = std::move(out_buf)]
+                          [this, m_p = std::move(m_p), shared_endpoint = shared_endpoint, handler = std::move(
+                                  handler), out_buf = std::move(out_buf)]
                                   (boost::system::error_code ec, std::size_t length) mutable -> void {
                               // We should first release our buffer to avoid recursive memory leak;
                               std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint =
@@ -74,7 +75,8 @@ void Connection::do_receive(std::unique_ptr<Message> m_p, Handler handler) {
     std::unique_ptr<MessageBuffer> in_buf = std::make_unique<MessageBuffer>();
     auto var_to_force_get_buffer_ptr_before_move = boost::asio::buffer(in_buf->buffer);
     socket_.async_receive_from(var_to_force_get_buffer_ptr_before_move, *shared_endpoint,
-                               [this, m_p = std::move(m_p), shared_endpoint = shared_endpoint, handler = std::move(handler), in_buf = std::move(in_buf)]
+                               [this, m_p = std::move(m_p), shared_endpoint = shared_endpoint, handler = std::move(
+                                       handler), in_buf = std::move(in_buf)]
                                        (boost::system::error_code ec, std::size_t length) mutable -> void {
                                    assert(length == Message::size());
                                    // We should first deserialize and avoid recursive memory leakage
@@ -83,13 +85,13 @@ void Connection::do_receive(std::unique_ptr<Message> m_p, Handler handler) {
                                    m_p->deserialize_from(in_buf->buffer);
                                    in_buf.release();
                                    if (ec) {
-                                       BOOST_LOG_TRIVIAL(debug) << fmt::format("Failed to receive {}:{} with error {}\n",
-                                                                               endpoint->address().to_string(),
-                                                                               endpoint->port(),
-                                                                               ec.message());
+                                       BOOST_LOG_TRIVIAL(debug)
+                                           << fmt::format("Failed to receive {}:{} with error {}\n",
+                                                          endpoint->address().to_string(),
+                                                          endpoint->port(),
+                                                          ec.message());
                                        do_receive(std::move(m_p), std::move(handler));
-                                   }
-                                   else {
+                                   } else {
                                        // Inform caller that data has been received ok.
                                        handler(std::move(m_p), std::move(endpoint), {ec, length});
                                    }

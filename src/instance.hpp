@@ -10,34 +10,36 @@
 #include <mutex>
 #include <shared_mutex>
 #include <atomic>
+
 #include "proposer.hpp"
 #include "acceptor.hpp"
 #include "learner.hpp"
 
 class PaxosServer;
 
-
 struct Instance {
     std::uint32_t seq;
-    PaxosServer* server;
+    PaxosServer *server;
     Proposer proposer;
     Acceptor acceptor;
     Learner learner;
     boost::asio::steady_timer deadline_timer;
-    Instance(std::uint32_t seq, PaxosServer* server);
+
+    Instance(std::uint32_t seq, PaxosServer *server);
 };
 
 class Instances {
   private:
-    PaxosServer* server;
+    PaxosServer *server;
   public:
 
-    Instances(PaxosServer* server): server(server) {}
+    Instances(PaxosServer *server) : server(server) {}
+
     std::map<std::uint32_t, std::unique_ptr<Instance>> instances;
 
     std::shared_mutex mu;
 
-    Instance* get_instance(std::uint32_t instance_seq);
+    Instance *get_instance(std::uint32_t instance_seq);
 
 };
 

@@ -76,7 +76,7 @@ std::unique_ptr<Message> Acceptor::on_accept(std::unique_ptr<Message> accept) {
         return std::move(inform);
     }
 
-    if(accept->proposal.number < highest_prepare_proposal_number) {
+    if (accept->proposal.number < highest_prepare_proposal_number) {
         std::size_t accept_proposal_number = accept->proposal.number;
         std::unique_ptr<Message> rejected = std::move(accept);
         rejected->type = MessageType::REJECTED;
@@ -123,7 +123,7 @@ void Acceptor::promise(std::unique_ptr<Message> promise) {
 
 void Acceptor::denial(std::unique_ptr<Message> denial) {
     BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Acceptor {} Async Send Denial to Proposer {}\n",
-                                             denial->sequence, this->instance->server->get_id(), denial->from_id);
+                                            denial->sequence, this->instance->server->get_id(), denial->from_id);
     auto endpoint = this->instance->server->config->get_addr_by_id(denial->from_id);
     denial->from_id = this->instance->server->get_id();
     this->instance->server->connect->do_send(std::move(denial), std::move(endpoint), do_nothing_handler);

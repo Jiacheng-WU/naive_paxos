@@ -12,9 +12,10 @@
  * Otherwise
  */
 
-#include <fstream>
 #include <vector>
+#include <fstream>
 #include <filesystem>
+
 #include "fmt/core.h"
 #include "sync.hpp"
 #include "message.hpp"
@@ -23,8 +24,8 @@ class PaxosServer;
 
 class Logger {
   public:
-    Logger(std::filesystem::path acceptor_log_path, std::filesystem::path learner_log_path, PaxosServer* server):
-    server(server), acceptor_log_path(acceptor_log_path), learner_log_path(learner_log_path) {
+    Logger(std::filesystem::path acceptor_log_path, std::filesystem::path learner_log_path, PaxosServer *server) :
+            server(server), acceptor_log_path(acceptor_log_path), learner_log_path(learner_log_path) {
 
         if (!std::filesystem::exists(acceptor_log_path)) {
             acceptor_log_file.open(acceptor_log_path, std::ios::out | std::ios::binary);
@@ -53,10 +54,12 @@ class Logger {
     inline static constexpr const std::uint32_t basic_file_state_blocks = 1024;
     inline static constexpr const char acceptor_append_buffer[basic_file_state_blocks * AcceptorState::size()] = {};
     inline static constexpr const char learner_append_buffer[basic_file_state_blocks * LearnerState::size()] = {};
+
     void append_acceptor_as_need(std::uint32_t sequence) {
         if (sequence >= acceptor_log_filesize / sizeof(AcceptorState)) {
             // std::size_t write_start_pos = acceptor_log_filesize;
-            std::size_t write_end_pos = (sequence / basic_file_state_blocks + 1) * basic_file_state_blocks * sizeof(AcceptorState);
+            std::size_t write_end_pos =
+                    (sequence / basic_file_state_blocks + 1) * basic_file_state_blocks * sizeof(AcceptorState);
             acceptor_log_file.seekp(0, std::ios::end);
             acceptor_log_file.write(acceptor_append_buffer, sizeof(acceptor_append_buffer));
             acceptor_log_file.flush();
@@ -68,7 +71,8 @@ class Logger {
     void append_learner_as_need(std::uint32_t sequence) {
         if (sequence >= learner_log_filesize / sizeof(LearnerState)) {
             // std::size_t write_start_pos = acceptor_log_filesize;
-            std::size_t write_end_pos = (sequence / basic_file_state_blocks + 1) * basic_file_state_blocks * sizeof(LearnerState);
+            std::size_t write_end_pos =
+                    (sequence / basic_file_state_blocks + 1) * basic_file_state_blocks * sizeof(LearnerState);
             learner_log_file.seekp(0, std::ios::end);
             learner_log_file.write(learner_append_buffer, sizeof(learner_append_buffer));
             learner_log_file.flush();
@@ -112,7 +116,9 @@ class Logger {
         return current_seq_state;
     }
 
-    bool recover_from_log(std::vector<std::uint32_t>& hole_sequence, std::uint32_t& min_sequence, std::uint32_t& max_sequence);
+    bool recover_from_log(std::vector<std::uint32_t> &hole_sequence, std::uint32_t &min_sequence,
+                          std::uint32_t &max_sequence);
+
   private:
 
     char acceptor_state_buffer[AcceptorState::size()];
@@ -123,7 +129,7 @@ class Logger {
     std::size_t acceptor_log_filesize;
     std::fstream learner_log_file;
     std::size_t learner_log_filesize;
-    PaxosServer* server;
+    PaxosServer *server;
 };
 
 

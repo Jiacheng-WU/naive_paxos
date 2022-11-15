@@ -6,11 +6,9 @@
 #define PAXOS_MESSAGE_HPP
 
 #include <cstdint>
-
-#include <memory>
 #include <cstring>
+#include <memory>
 #include "magic_enum.hpp"
-// #include "boost/serialization/serialization.hpp"
 
 
 enum class MessageType : std::uint32_t {
@@ -44,10 +42,9 @@ enum class MessageType : std::uint32_t {
 };
 
 
-
 struct ProposalValue {
     // do not use enum class otherwise we need to have multiple ::
-    enum ProposalOperation: std::uint32_t {
+    enum ProposalOperation : std::uint32_t {
         UNDEFINED = 0,
         ELECT_LEADER,
         LOCK,
@@ -149,9 +146,11 @@ struct AcceptorState {
     std::uint32_t highest_prepare_proposal_number;
     std::uint32_t highest_accepted_proposal_number;
     ProposalValue highest_accepted_proposal_value;
+
     [[nodiscard]] static consteval std::size_t size() {
         return sizeof(AcceptorState);
     }
+
     void serialize_to(char buffer[/*size()*/]) {
         memcpy(buffer, this, size());
     }
@@ -165,9 +164,11 @@ struct LearnerState {
     std::uint32_t sequence;
     std::uint32_t final_informed_proposal_number;
     ProposalValue final_informed_proposal_value;
+
     [[nodiscard]] static consteval std::size_t size() {
         return sizeof(LearnerState);
     }
+
     void serialize_to(char buffer[/*size()*/]) {
         memcpy(buffer, this, size());
     }
