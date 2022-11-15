@@ -22,7 +22,7 @@ void init()
 int main(int argc, char* argv[]) {
 //    auto k = std::move(do_nothing_handler);
 //    do_nothing_handler(nullptr, nullptr, {});
-    init();
+
 
     if (argc == 1 || argc >= 4) {
         std::cout << fmt::format("{} {} {}\n", "program_name", "id", "(recovery)");
@@ -31,6 +31,8 @@ int main(int argc, char* argv[]) {
 
     std::unique_ptr<Config> config = std::make_unique<Config>();
     config->load_config();
+
+    init();
 
     std::uint32_t current_id = 0;
     try {

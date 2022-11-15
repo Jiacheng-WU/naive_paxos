@@ -8,6 +8,7 @@
 #include <cstdint>
 
 #include <memory>
+#include <cstring>
 #include "magic_enum.hpp"
 // #include "boost/serialization/serialization.hpp"
 
@@ -115,11 +116,11 @@ struct Message {
     }
 
 // #warning "IGNORE LITTLE ENDIAN OR LARGE ENDIAN"
-    void serialize_to(std::uint8_t buffer[]) {
+    void serialize_to(std::uint8_t buffer[/*size()*/]) {
         memcpy(buffer, this, size());
     }
 
-    void deserialize_from(std::uint8_t buffer[]) {
+    void deserialize_from(std::uint8_t buffer[/*size()*/]) {
         memcpy(this, buffer, size());
     }
 
@@ -151,11 +152,11 @@ struct AcceptorState {
     [[nodiscard]] static consteval std::size_t size() {
         return sizeof(AcceptorState);
     }
-    void serialize_to(char buffer[]) {
+    void serialize_to(char buffer[/*size()*/]) {
         memcpy(buffer, this, size());
     }
 
-    void deserialize_from(char buffer[]) {
+    void deserialize_from(char buffer[/*size()*/]) {
         memcpy(this, buffer, size());
     }
 };
@@ -167,11 +168,11 @@ struct LearnerState {
     [[nodiscard]] static consteval std::size_t size() {
         return sizeof(LearnerState);
     }
-    void serialize_to(char buffer[]) {
+    void serialize_to(char buffer[/*size()*/]) {
         memcpy(buffer, this, size());
     }
 
-    void deserialize_from(char buffer[]) {
+    void deserialize_from(char buffer[/*size()*/]) {
         memcpy(this, buffer, size());
     }
 };

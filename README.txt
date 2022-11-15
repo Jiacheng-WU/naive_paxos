@@ -17,8 +17,8 @@ Project Description:
         * Build Steps
             - mkdir build
             - cd build
-            - cmake -DCMAKE_BUILD_TYPE=(Debug|Release) -DCMAKE_GENERATOR=Ninja [-DCMAKE_CXX_COMPILER=clang++{>=14} -DCMAKE_CXX_COMPILER=clang{>=14}} ..
-            - ninja
+            - cmake -DCMAKE_BUILD_TYPE=(Debug|Release) [-DCMAKE_CXX_COMPILER=clang++{>=14} -DCMAKE_CXX_COMPILER=clang{>=14}} ..
+            - make
         * Output
             - paxos_server (The Paxos Server runs paxos instance)
             - paxos_client (Example Client to issue requests)
