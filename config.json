@@ -1,5 +1,5 @@
 {
-  "log_level" : "debug",
+  "log_level" : "trace",
   "after_prepare_milliseconds" : 2000,
   "after_accept_milliseconds" : 2000,
   "client_retry_milliseconds" : 4000,

@@ -40,6 +40,11 @@ void PaxosServer::dispatch_paxos_message(std::unique_ptr<Message> m_p,
     // assert(Config::server_id_to_map[m_p->from_id] == *endpoint);
     uint32_t instance_seq = m_p->sequence;
     Instance* instance = instances.get_instance(instance_seq);
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} recv {} Message from Endpoint {}:{}\n",
+                                            instance_seq, this->get_id(),
+                                            magic_enum::enum_name(m_p->type),
+                                            endpoint->address().to_string(),
+                                            endpoint->port());
     switch (m_p->type) {
         case MessageType::PREPARE: {
             /** Acceptor Recv PREPARE from Proposer in Phase 1 **/
@@ -174,6 +179,7 @@ void PaxosServer::dispatch_server_message(std::unique_ptr<Message> m_p,
                                           asio_handler_paras paras) {
 //    uint32_t instance_seq = m_p->sequence;
 //    Instance* instance = instances.get_instance(instance_seq);
+
     switch (m_p->type) {
         case MessageType::SUBMIT: {
 

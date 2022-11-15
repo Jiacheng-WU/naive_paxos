@@ -63,7 +63,7 @@ class Connection {
                     return;
                 } else {
                     // Handle errors
-                    BOOST_LOG_TRIVIAL(debug) << fmt::format("Failed to receive {}:{} with error {}\n",
+                    BOOST_LOG_TRIVIAL(debug) << fmt::format("Failed to send {}:{} with error {}\n",
                                                             endpoint->address().to_string(),
                                                             endpoint->port(),
                                                             paras.ec.message());
