@@ -26,10 +26,16 @@ Project Description:
     * Run Specifications:
         * For Server
             - We should specify the server_id for the server
-            - ./paxos_server {id}
+            - ./paxos_server {id} ../config.json
             - Server started with specific id will use the ip and port specified in config.cpp
         * For Client
-            - ./paxos_client
+            - ./paxos_client {port = 0} ../config.json ../test.command
+            - If not specified testfile, then client will use interactive mode
+            - We support 4 types of command
+                - lock (object_id)
+                - unlock (object_id)
+                - wait (number) {that is pause for number milliseconds}
+                - server (server_id) {force next command to send server_id}
             - Just run since it is just an example displayed to issue requests
         * For Recovery
             - ./paxos_server {id} recovery
