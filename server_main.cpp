@@ -11,7 +11,7 @@
 #include <boost/log/expressions.hpp>
 #include "server.hpp"
 
-void init(boost::log::trivial::severity_level log_level) {
+void init_log_level(boost::log::trivial::severity_level log_level) {
     boost::log::core::get()->set_filter
             (
                     boost::log::trivial::severity >= log_level
@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
     std::unique_ptr<Config> config = std::make_unique<Config>();
     config->load_config(std::filesystem::path(config_filepath_str));
 
-    init(config->log_level);
+    init_log_level(config->log_level);
 
     config->log_detail_infos();
 

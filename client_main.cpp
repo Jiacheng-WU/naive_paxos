@@ -14,6 +14,13 @@
 #include "magic_enum.hpp"
 #include "client.hpp"
 
+void init_log_level(boost::log::trivial::severity_level log_level) {
+    boost::log::core::get()->set_filter
+            (
+                    boost::log::trivial::severity >= log_level
+            );
+}
+
 std::tuple<std::uint16_t, std::string, std::string> parse_argument(int argc, char *argv[]) {
     std::uint16_t port_number = 0;
     std::string config_filepath_str = "../config.json";
@@ -53,6 +60,10 @@ int main(int argc, char *argv[]) {
 
     std::unique_ptr<Config> config = std::make_unique<Config>();
     config->load_config(std::filesystem::path(config_filepath_str));
+
+    init_log_level(config->log_level);
+
+    config->log_detail_infos();
 
     if (config->at_most_once && port_number == 0) {
         BOOST_LOG_TRIVIAL(warning)
@@ -104,14 +115,14 @@ int main(int argc, char *argv[]) {
         boost::to_lower(operation);
         if (operation == std::string("lock")) {
             auto [response_op, response_object_id] = client.lock(object_id);
-            fmt::print("lock({})\t response: {} on {}\n", object_id, magic_enum::enum_name(response_op),
+            fmt::print("lock({})   response:  {:<15} on object {}\n", object_id, magic_enum::enum_name(response_op),
                        response_object_id);
         } else if (operation == std::string("unlock")) {
             auto [response_op, response_object_id] = client.unlock(object_id);
-            fmt::print("unlock({})\t response: {} on {}\n", object_id, magic_enum::enum_name(response_op),
+            fmt::print("unlock({}) response:  {:<15} on object {}\n", object_id, magic_enum::enum_name(response_op),
                        response_object_id);
         } else if (operation == std::string("wait")) {
-            fmt::print("wait({}ms)\t response: none\n", object_id);
+            fmt::print("wait({}ms) response:  none\n", object_id);
             std::this_thread::sleep_for(std::chrono::milliseconds(object_id));
         } else {
             fmt::print("Invalid Operation : {}\n", command_format);
