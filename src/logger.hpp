@@ -14,13 +14,12 @@
 
 #include <fstream>
 #include <vector>
+#include <filesystem>
 #include "fmt/core.h"
 #include "sync.hpp"
 #include "message.hpp"
 
 class PaxosServer;
-
-
 
 class Logger {
   public:
