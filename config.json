@@ -1,11 +1,11 @@
 {
-  "log_level" : "trace",
+  "log_level" : "debug",
   "after_prepare_milliseconds" : 2000,
   "after_accept_milliseconds" : 2000,
   "client_retry_milliseconds" : 4000,
   "network_send_retry_times" : 1,
   "need_recovery" : true,
-  "at_most_once" : true,
+  "at_most_once" : false,
   "id_addr_map" : [
     {
       "id": 0,
@@ -19,7 +19,7 @@
     },
     {
       "id": 2,
-      "ip": "127.0.0.1",
+      "ip": "128.208.1.141",
       "port" : 12082
     }
   ]
