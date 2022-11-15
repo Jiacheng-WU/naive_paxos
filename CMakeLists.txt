@@ -3,6 +3,8 @@ project(paxos)
 
 set(CMAKE_CXX_STANDARD 20)
 
+add_compile_definitions(BOOST_LOG_DYN_LINK=1)
+
 find_package(Boost REQUIRED system serialization log)
 message(${Boost_INCLUDE_DIRS})
 include_directories(${Boost_INCLUDE_DIRS})
