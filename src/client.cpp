@@ -38,7 +38,7 @@ std::pair<PaxosClient::op_result_type, std::uint32_t> PaxosClient::lock_or_unloc
         BOOST_LOG_TRIVIAL(trace) << fmt::format("Resend {} request on object {} with op_id {} to Server {} {}:{} due to Receive Error {}",
                                                 magic_enum::enum_name(op), object_id, submit->proposal.value.client_once, server_id,
                                                 config->server_id_to_addr_map[server_id].address().to_string(),
-                                                config->server_id_to_addr_map[server_id].port(), error.what());
+                                                config->server_id_to_addr_map[server_id].port(), error.message());
 
         socket.send_to(boost::asio::buffer(out_message), get_next_server_endpoint());
         len = this->receive(boost::asio::buffer(in_message),
@@ -53,7 +53,7 @@ std::pair<PaxosClient::op_result_type, std::uint32_t> PaxosClient::lock_or_unloc
             BOOST_LOG_TRIVIAL(trace) << fmt::format("Resend {} request on object {} with op_id {} to Server {} {}:{} due to Receive Error {}",
                                                     magic_enum::enum_name(op), object_id, submit->proposal.value.client_once, server_id,
                                                     config->server_id_to_addr_map[server_id].address().to_string(),
-                                                    config->server_id_to_addr_map[server_id].port(), error.what());
+                                                    config->server_id_to_addr_map[server_id].port(), error.message());
             socket.send_to(boost::asio::buffer(out_message), get_next_server_endpoint());
             len = this->receive(boost::asio::buffer(in_message), std::chrono::seconds(10), error);
         }
