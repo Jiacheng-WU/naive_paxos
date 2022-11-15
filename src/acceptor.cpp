@@ -7,6 +7,10 @@
 #include "server.hpp"
 
 std::unique_ptr<Message> Acceptor::on_prepare(std::unique_ptr<Message> prepare) {
+
+    BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Acceptor {} - on_prepare\n",
+                                            prepare->sequence, this->instance->server->get_id());
+
     std::lock_guard<std::mutex> lock(acceptor_mutex);
     if (this->instance->learner.has_been_informed()) {
         std::size_t prepare_proposal_number = prepare->proposal.number;
@@ -14,7 +18,7 @@ std::unique_ptr<Message> Acceptor::on_prepare(std::unique_ptr<Message> prepare) 
         inform->type = MessageType::INFORM;
         inform->proposal.number = this->instance->learner.get_learned_proposal_number();
         inform->proposal.value = this->instance->learner.get_learned_proposal_value();
-        inform->prepare_proposal_number = prepare_proposal_number;
+        inform->responsible_server_id = inform->from_id;
         return std::move(inform);
     }
 
@@ -64,15 +68,19 @@ std::unique_ptr<Message> Acceptor::on_prepare(std::unique_ptr<Message> prepare) 
 
 
 std::unique_ptr<Message> Acceptor::on_accept(std::unique_ptr<Message> accept) {
+
+    BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Acceptor {} - on_accept\n",
+                                            accept->sequence, this->instance->server->get_id());
+
     std::lock_guard<std::mutex> lock(acceptor_mutex);
 
     if (this->instance->learner.has_been_informed()) {
-        std::size_t prepare_proposal_number = accept->proposal.number;
+        std::size_t accept_proposal_number = accept->proposal.number;
         std::unique_ptr<Message> inform = std::move(accept);
         inform->type = MessageType::INFORM;
         inform->proposal.number = this->instance->learner.get_learned_proposal_number();
         inform->proposal.value = this->instance->learner.get_learned_proposal_value();
-        inform->prepare_proposal_number = prepare_proposal_number;
+        inform->responsible_server_id = inform->from_id;
         return std::move(inform);
     }
 
@@ -149,7 +157,7 @@ void Acceptor::inform_to_outdated_proposal(std::unique_ptr<Message> inform) {
     BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Acceptor {} Async Send Inform to Proposer {}\n",
                                             inform->sequence, this->instance->server->get_id(), inform->from_id);
     auto endpoint = this->instance->server->config->get_addr_by_id(inform->from_id);
-    inform->from_id = this->instance->server->get_id();
+    // inform->from_id = this->instance->server->get_id();
     this->instance->server->connect->do_send(std::move(inform), std::move(endpoint), do_nothing_handler);
 }
 

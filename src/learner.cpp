@@ -66,6 +66,7 @@ void Learner::inform(std::unique_ptr<Message> inform) {
                                             inform->proposal.value.object);
 
     inform->from_id = this->instance->server->get_id();
+    inform->responsible_server_id = inform->from_id;
 
     for (std::uint32_t node_id = 0; node_id < this->instance->server->get_number_of_nodes(); node_id++) {
         // We need to clone the unique_ptr<Message> and just send to all nodes;
@@ -81,6 +82,7 @@ void Learner::inform(std::unique_ptr<Message> inform) {
 std::unique_ptr<Message> Learner::on_inform(std::unique_ptr<Message> inform) {
     BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Learner {} - on_inform\n",
                                             inform->sequence, this->instance->server->get_id());
+
     std::lock_guard<std::mutex> lock(learner_mutex);
     // Log State and
     if (informed) {

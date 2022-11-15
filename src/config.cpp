@@ -35,6 +35,7 @@ bool Config::load_config(std::filesystem::path json_filepath) {
         load_config();
         return false;
     }
+    config_file_name = json_filepath.generic_string();
     std::ifstream f(json_filepath);
     nlohmann::json data = nlohmann::json::parse(f);
     if (data.contains("log_level")) {
@@ -89,14 +90,15 @@ std::filesystem::path Config::get_acceptor_file_path(Config::server_id_t server_
 }
 
 void Config::log_detail_infos() const {
-    BOOST_LOG_TRIVIAL(debug) << fmt::format("{} : {}, ", "log_level", magic_enum::enum_name(log_level));
-    BOOST_LOG_TRIVIAL(debug) << fmt::format("{} : {}, ", "after_prepare_milliseconds", after_prepare_milliseconds);
-    BOOST_LOG_TRIVIAL(debug) << fmt::format("{} : {}, ", "after_accept_milliseconds", after_accept_milliseconds);
-    BOOST_LOG_TRIVIAL(debug) << fmt::format("{} : {}, ", "client_retry_milliseconds", client_retry_milliseconds);
-    BOOST_LOG_TRIVIAL(debug) << fmt::format("{} : {}, ", "network_send_retry_times", network_send_retry_times);
-    BOOST_LOG_TRIVIAL(debug) << fmt::format("{} : {} -- ", "server_id_to_addr_map", server_id_to_addr_map.size());
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("Use config file: {}", config_file_name != "" ? config_file_name : "none (use hard coded default)");
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("  {} : {}, ", "log_level", magic_enum::enum_name(log_level));
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("  {} : {}, ", "after_prepare_milliseconds", after_prepare_milliseconds);
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("  {} : {}, ", "after_accept_milliseconds", after_accept_milliseconds);
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("  {} : {}, ", "client_retry_milliseconds", client_retry_milliseconds);
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("  {} : {}, ", "network_send_retry_times", network_send_retry_times);
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("  {} : {} -- ", "server_id_to_addr_map", server_id_to_addr_map.size());
     for (auto &&[id, addr]: server_id_to_addr_map) {
-        BOOST_LOG_TRIVIAL(debug) << fmt::format("\t id : {} , addr: {}:{} ",
+        BOOST_LOG_TRIVIAL(debug) << fmt::format("    id : {} , addr: {}:{} ",
                                                 id, addr.address().to_string(), addr.port());
     }
 }

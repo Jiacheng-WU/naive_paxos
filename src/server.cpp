@@ -122,7 +122,7 @@ void PaxosServer::dispatch_paxos_message(std::unique_ptr<Message> m_p,
                 break;
             }
             for (auto &&cmd: executed_commands) {
-                if (cmd->from_id != id) {
+                if (cmd->responsible_server_id != id) {
                     // It represents that current server is not response to the client requests;
                     continue;
                 }
@@ -352,6 +352,7 @@ std::unique_ptr<Message> PaxosServer::response(std::unique_ptr<Message> response
                                             client_endpoint->address().to_string(),
                                             client_endpoint->port(),
                                             response->proposal.value.client_once);
+    response->from_id = this->get_id();
     connect->do_send(std::move(response), std::move(client_endpoint), do_nothing_handler);
     return resubmit;
 }

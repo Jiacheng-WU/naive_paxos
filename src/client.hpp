@@ -90,10 +90,15 @@ class PaxosClient {
     }
 
 
-    boost::asio::ip::udp::endpoint get_next_server_endpoint() {
+    boost::asio::ip::udp::endpoint get_curr_server_endpoint_and_bump_to_next() {
+        std::uint32_t current_server_id = server_id;
         server_id++;
         server_id %= config->number_of_nodes;
-        return config->server_id_to_addr_map[server_id];
+        return config->server_id_to_addr_map[current_server_id];
+    }
+
+    void reset_current_server_id(std::uint32_t server_id) {
+        this->server_id = server_id;
     }
 
     enum class op_type {
@@ -132,14 +137,18 @@ class PaxosClient {
 
     std::unique_ptr<Message> construct_lock_or_unlock_message(std::uint32_t object_id, op_type op);
 
-    std::pair<op_result_type, std::uint32_t> lock_or_unlock(std::uint32_t object_id, op_type op);
+    using object_id_t = std::uint32_t;
+    using server_id_t = std::uint32_t;
+    using result_t = std::tuple<op_result_type, object_id_t, server_id_t>;
+
+    result_t lock_or_unlock(std::uint32_t object_id, op_type op);
 
 
-    std::pair<op_result_type, std::uint32_t> lock(std::uint32_t object_id) {
+    result_t lock(std::uint32_t object_id) {
         return lock_or_unlock(object_id, op_type::LOCK);
     }
 
-    std::pair<op_result_type, std::uint32_t> unlock(std::uint32_t object_id) {
+    result_t unlock(std::uint32_t object_id) {
         return lock_or_unlock(object_id, op_type::UNLOCK);
     }
 

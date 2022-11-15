@@ -93,6 +93,7 @@ struct Message {
          * But it may accelerate for the rejected message not avoid next round proposal
          */
         std::uint32_t accept_proposal_number;
+        std::uint32_t responsible_server_id; // For Inform and following execution
     };
 
     [[nodiscard]] static consteval std::size_t size() {

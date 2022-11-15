@@ -55,7 +55,7 @@ class Proposer {
     // Avoid Duplicated Message;
     boost::dynamic_bitset<std::uint8_t> current_promised_acceptors;
     boost::dynamic_bitset<std::uint8_t> current_denied_acceptors;
-    bool have_promised;
+    bool have_majority_promised_on_current_proposal_number;
 
     Instance *instance;
 };

@@ -27,7 +27,8 @@ std::tuple<std::uint16_t, std::string, std::string> parse_argument(int argc, cha
     std::string test_filepath_str = "";
     if (argc == 1 || argc >= 5) {
         fmt::print("{} {} {} {}\n", "program_name",
-                   "(port = 0)", "(config path)", "(testfile path) or interactive");
+                   "(port [could set to 0 if not specified])", "(config path)",
+                   "(testfile path [not specified means interactive mode])");
         exit(0);
     } else {
         try {
@@ -39,7 +40,8 @@ std::tuple<std::uint16_t, std::string, std::string> parse_argument(int argc, cha
             }
         } catch (boost::bad_lexical_cast &err) {
             fmt::print("{} {} {} {}\n", "program_name",
-                       "(port = 0)", "(config path)", "(testfile path) or interactive");
+                       "port [could set to 0 if not specified]", "config path",
+                       "(testfile path [not specified means interactive mode])");
             exit(0);
         }
 
@@ -87,7 +89,7 @@ int main(int argc, char *argv[]) {
     }
 
 
-    std::string command_format = "The Command Format is [(op:lock|unlock) (object_id:uint32_t)] or [wait 1000] ms ";
+    std::string command_format = "The Command Format is [(op:lock|unlock) (object_id:uint32_t)] or [wait 1000] ms or [server server_id (0, #nodes - 1)] ";
     std::string command;
     if (input_stream == &std::cin) {
         std::cout << "Please Input Command:\t" << std::flush;
@@ -103,7 +105,10 @@ int main(int argc, char *argv[]) {
                                     result.end(),
                                     [](const std::string &x) { return x.empty(); }),
                      result.end());
-        if (result.size() != 2) { fmt::print("Invalid Command : {}\n", command_format); }
+        if (result.size() != 2) {
+            fmt::print("Invalid Command : {}\n", command_format);
+            continue;
+        }
         std::string operation = result[0];
         std::string object_id_string = result[1];
         std::uint32_t object_id = 0;
@@ -111,19 +116,27 @@ int main(int argc, char *argv[]) {
             object_id = boost::lexical_cast<uint32_t>(object_id_string);
         } catch (boost::bad_lexical_cast &err) {
             fmt::print("Invalid Argument : {}\n", command_format);
+            continue;
         }
         boost::to_lower(operation);
         if (operation == std::string("lock")) {
-            auto [response_op, response_object_id] = client.lock(object_id);
-            fmt::print("lock({})   response:  {:<15} on object {}\n", object_id, magic_enum::enum_name(response_op),
-                       response_object_id);
+            auto [response_op, response_object_id, response_server_id] = client.lock(object_id);
+            fmt::print("lock({})   response from server {} :  {:<15} on object {}\n", object_id,
+                       response_server_id, magic_enum::enum_name(response_op), response_object_id);
         } else if (operation == std::string("unlock")) {
-            auto [response_op, response_object_id] = client.unlock(object_id);
-            fmt::print("unlock({}) response:  {:<15} on object {}\n", object_id, magic_enum::enum_name(response_op),
-                       response_object_id);
+            auto [response_op, response_object_id, response_server_id] = client.unlock(object_id);
+            fmt::print("unlock({}) response from server {} :  {:<15} on object {}\n", object_id,
+                       response_server_id, magic_enum::enum_name(response_op), response_object_id);
         } else if (operation == std::string("wait")) {
             fmt::print("wait({}ms) response:  none\n", object_id);
             std::this_thread::sleep_for(std::chrono::milliseconds(object_id));
+        } else if (operation == std::string("server")) {
+            if (object_id >= 0 && object_id < client.config->number_of_nodes) {
+                fmt::print("server({}) response:  none\n", object_id);
+                client.reset_current_server_id(object_id);
+            } else {
+                fmt::print("Invalid Server Id : {}\n", command_format);
+            }
         } else {
             fmt::print("Invalid Operation : {}\n", command_format);
         }

@@ -14,7 +14,7 @@ Proposer::Proposer(Instance *inst) : instance(inst) {
     // We now use dynamic bitset
     current_promised_acceptors.resize(this->instance->server->get_number_of_nodes(), false);
     current_denied_acceptors.resize(this->instance->server->get_number_of_nodes(), false);
-    have_promised = false;
+    have_majority_promised_on_current_proposal_number = false;
 }
 
 std::uint32_t Proposer::get_next_proposal_number() {
@@ -34,9 +34,10 @@ std::unique_ptr<Message> Proposer::on_submit(std::unique_ptr<Message> submit) {
         return nullptr;
     }
 
-    std::lock_guard<std::mutex> lock(proposer_mutex);
-    BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Propose {} - on_submit\n",
+    BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Proposer {} - on_submit\n",
                                             submit->sequence, this->instance->server->get_id());
+
+    std::lock_guard<std::mutex> lock(proposer_mutex);
 
     // As we propose
     this->highest_accepted_proposal_number = 0; // Move to Initial State
@@ -54,7 +55,7 @@ std::unique_ptr<Message> Proposer::on_submit(std::unique_ptr<Message> submit) {
     std::uint32_t proposal_number = get_next_proposal_number();
     current_promised_acceptors.reset(); // reset promised acceptor number
     current_denied_acceptors.reset();
-    have_promised = false;
+    have_majority_promised_on_current_proposal_number = false;
     std::unique_ptr<Message> prepare = std::move(submit);
     prepare->type = MessageType::PREPARE;
     prepare->proposal.number = proposal_number;
@@ -65,6 +66,7 @@ std::unique_ptr<Message> Proposer::on_submit(std::unique_ptr<Message> submit) {
  * Return nullptr if do nothing
  */
 std::unique_ptr<Message> Proposer::on_promise(std::unique_ptr<Message> promise) {
+
     BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Proposer {} - on_promise\n",
                                             promise->sequence, this->instance->server->get_id());
 
@@ -86,15 +88,19 @@ std::unique_ptr<Message> Proposer::on_promise(std::unique_ptr<Message> promise) 
     current_promised_acceptors.set(promise->from_id);
     // Majority
     if (current_promised_acceptors.count() * 2 > this->instance->server->get_number_of_nodes()) {
-        have_promised = true;
-        std::unique_ptr<Message> accept = std::move(promise);
-        accept->type = MessageType::ACCEPT;
-        accept->proposal.number = this->current_proposal_number;
-        accept->proposal.value = this->highest_accepted_proposal_value;
-        // accept->from_id = this->instance->server->get_id();
-        this->instance->deadline_timer.cancel();
+        if (!have_majority_promised_on_current_proposal_number) {
+            have_majority_promised_on_current_proposal_number = true;
+            std::unique_ptr<Message> accept = std::move(promise);
+            accept->type = MessageType::ACCEPT;
+            accept->proposal.number = this->current_proposal_number;
+            accept->proposal.value = this->highest_accepted_proposal_value;
+            // accept->from_id = this->instance->server->get_id();
+            this->instance->deadline_timer.cancel();
 
-        return std::move(accept);
+            return std::move(accept);
+        } else {
+            return nullptr;
+        }
     } else {
         return nullptr;
     }
@@ -158,9 +164,8 @@ void Proposer::accept(std::unique_ptr<Message> accept) {
             this->instance->server->config->after_accept_milliseconds + get_random_number(0, 1000)));
     this->instance->deadline_timer.async_wait(
             [this, old_accept = accept->clone()](const boost::system::error_code &error) mutable {
-                if (error) {
-                    return;
-                }
+                if (error) {return; /*Timeout Canceled*/}
+                if (old_accept->sequence <= this->instance->server->get_executed_cmd_seq()) {return;}
                 std::unique_ptr<Message> resubmit = std::move(old_accept);
                 resubmit->type = MessageType::SUBMIT;
                 std::unique_ptr<boost::asio::ip::udp::endpoint> client_endpoint = get_udp_ipv4_endpoint_from_uint64_t(
@@ -203,10 +208,8 @@ void Proposer::prepare(std::unique_ptr<Message> prepare) {
             this->instance->server->config->after_prepare_milliseconds + get_random_number(0, 1000)));
     this->instance->deadline_timer.async_wait(
             [this, old_prepare = prepare->clone()](const boost::system::error_code &error) mutable {
-                if (error) {
-                    return;
-                }
-
+                if (error) {return; /*Timeout Canceled*/}
+                if (old_prepare->sequence <= this->instance->server->get_executed_cmd_seq()) {return;}
                 std::unique_ptr<Message> resubmit = std::move(old_prepare);
                 resubmit->type = MessageType::SUBMIT;
                 std::unique_ptr<boost::asio::ip::udp::endpoint> client_endpoint = get_udp_ipv4_endpoint_from_uint64_t(

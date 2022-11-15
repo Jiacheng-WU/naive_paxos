@@ -49,6 +49,7 @@ class PaxosServer {
 
     std::uint32_t get_number_of_nodes() const { return number_of_nodes; }
 
+    std::uint32_t get_executed_cmd_seq() const {return executed_cmd_seq;}
 
     Handler handler_wrapper(void (PaxosServer::*p)(std::unique_ptr<Message> m_p,
                                                    std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint,
@@ -183,6 +184,8 @@ class PaxosServer {
     std::unordered_map<object_id_t, lock_client_id_t> object_lock_state;
 
     std::uint32_t executed_cmd_seq;
+
+
 
     class Message_Command_Less {
       public:

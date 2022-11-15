@@ -43,14 +43,16 @@ int main(int argc, char *argv[]) {
     std::uint32_t current_id = 0;
     try {
         current_id = boost::lexical_cast<uint32_t>(argv[1]);
-        assert(current_id < config->number_of_nodes);
+        if(current_id >= config->number_of_nodes) {
+            std::cout << fmt::format("The server id {} should be less than #nodes {}\n", current_id, config->number_of_nodes);
+            return 0;
+        }
     } catch (boost::bad_lexical_cast &err) {
         std::cout << fmt::format("{} {} {}\n", "program_name", "id", "(config path)");
         return 0;
     }
 
-    bool need_recovery = config->need_recovery;
-    BOOST_LOG_TRIVIAL(debug) << fmt::format("Server {} : {}\n", current_id, need_recovery ? "recovery" : "no recovery");
+    BOOST_LOG_TRIVIAL(debug) << fmt::format("Server {} : {}\n", current_id, config->need_recovery ? "recovery" : "no recovery");
 
     boost::asio::io_context io_context;
 
@@ -69,6 +71,6 @@ int main(int argc, char *argv[]) {
     BOOST_LOG_TRIVIAL(debug) << fmt::format("Server {} : start\n", server.get_id());
     io_context.run();
 
-    std::cout << sizeof(boost::asio::ip::udp::endpoint) << std::endl;
+    // std::cout << sizeof(boost::asio::ip::udp::endpoint) << std::endl;
     return 0;
 }

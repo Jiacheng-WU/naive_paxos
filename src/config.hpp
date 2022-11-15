@@ -50,6 +50,8 @@ struct Config {
     std::unique_ptr<server_addr_t> get_addr_by_id(server_id_t server_id) {
         return std::make_unique<server_addr_t>(server_id_to_addr_map[server_id]);
     }
+
+    std::string config_file_name{""};
 };
 
 
