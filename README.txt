@@ -55,7 +55,7 @@ Project Description:
             - Though I knew it is better to use fdatasync to ensure flush to disk instead of os
         * Resending Message:
             - Add timeout for the proposer
-            - the proposer will try to resend prepare/accept if it don't received majority message for a long time.
+            - the proposer will try to resend prepare/accept if it doesn't receive majority message for a long time.
         * Deadlock:
             - We would like to return LOCK_AGAIN state to identify one client try lock again.
 
@@ -73,7 +73,7 @@ Implementation:
         - Use ASIO framework and callbacks to handle concurrent client requests
         - Each arrived Message would trigger a specific event to propose
         - Sometimes need lock to maintain the critical section
-            - Say if the instance would have two massage arrives at same time, and may have conflicts to process
+            - Say if the instance would have two messages arrive at same time, and may have conflicts to process
             - But if io_context is single_thread, it may be not necessary to hold a lock.
     * Request resubmit Mechanism
         - Each client requests would be assigned to Instance with Sequence SEQ
@@ -89,15 +89,15 @@ Implementation:
         - How to Know when a command is chosen and when the command could be executed.
             - Additional INFORM message and timeout mechanism to ensure correctness and efficiency.
             - When the Learner received majority accepted message on the latest proposal number
-            - Then this Learner knows this PAXOS instance achieved consensus, it just send INFORM message
-            - When other learner received the INFORM, it also know we achieved consensus
+            - Then this Learner knows this PAXOS instance achieved consensus, it just sends INFORM message
+            - When other learner received the INFORM, it also knew we achieved consensus
             - Next, they just put the value (commands) into a min heap of server (less sequence is in the front)
             - Each server also maintain the current executed SEQ, and to find if there is next SEQ to execute
-            - One command can be executed (and therefore repond to clients) only if the previous SEQ all executed
-            - Say even SEQ 5 is acheived consensus, it still need to wait SEQ 1,2,3,4 to achieve consensus and execute.
-            - We just use a min-heap to maintain accepted but cannot executed values and also deduplicated
+            - One command can be executed (and therefore respond to clients) only if the previous SEQ all executed
+            - Say even SEQ 5 is achieved consensus, it still needs to wait SEQ 1,2,3,4 to achieve consensus and execute.
+            - We just use a min-heap to maintain accepted but cannot execute values and also deduplicated
             - Then once a new value is put into the heap, we just detect whether the front SEQ is executed SEQ + 1
-            - If no, we just ignore. Otherwise, we could executed the front SEQ, remove it, update executed SEQ and detect recursively
+            - If no, we just ignore. Otherwise, we could execute the front SEQ, remove it, update executed SEQ and detect recursively
     * Concise Structure
         - Only use 10 * sizeof(std::uint32_t) for each message, which is short and faster
             - Use enum MessageType and enum OperationType to distinguish
@@ -111,7 +111,7 @@ Implementation:
 Some Discussions:
 
     Suppose we have proposer P1, P2, P3
-    Suppoer we heve acceptor A1, A2, A3
+    Suppose we have acceptor A1, A2, A3
 
     * The Consensus is that once > half of acceptors agreed on a number, then they have consensus.
         - More Specific, > half of acceptors has accepted the same proposal number (not the value)
@@ -126,7 +126,7 @@ Some Discussions:
         - P first send PREPARE to A1, A2, A3 with proposal number n = 3;
         - A1, A2, A3 recv PREPARE and PROMISE not to respond other proposal less than n = 3;
             - But these three message arrives late until the next propose action.
-        - P find it is timeout to receive PROMISE, and repropose PREPARE with n = 6;
+        - P find it is timeout to receive PROMISE, and re-propose PREPARE with n = 6;
             - But these three message just lost and A1, A2, A3 didn't receive it.
         - P then receive message in the previous round with n = 3;
             - If we do not identify the proposal number,
@@ -175,13 +175,13 @@ Some Discussions:
         - However, the leader P1 is somehow delayed and cannot contact P3,
         - then P3 try to elect as a leader and start with proposal_number = 1
         - After P3 have finished the whole procedure and learner even learned the value from > 1/2 acceptor
-        - P1 is awaken and simply execute the accept phase with its own proposal value with higher number = 3
+        - P1 is awake and simply execute the ACCEPT phase with its own proposal value with higher number = 3
         - Then all other acceptors simply accepts since it is a newer one which broken the paxos
-        - Therefore, we needs the default number for the Leader is the less one
+        - Therefore, we need the default number for the Leader is the less one
         - and should less than or other possible proposal numbers in PREPARE
         - In such cases, the error will be discovered and then after P1 is rejected,
         - It could arise a new round of paxos or just learned a new leader!!
-        - We should also mentioned here that if the leader find itself timeout,
+        - We should also mention here that if the leader find itself timeout,
         - The leader should also do the whole paxos (including PHASE 1) to ensure consensus!!
 
     * The Acceptor's PROMISE (on_prepare) and ACCEPTED (on_accept) should be atomic, that is,
@@ -210,7 +210,7 @@ Some Discussions:
 
     * Learner's Behaviour, it is not necessary the history accepted cases
         - Learner only needs to care about the largest proposal number of accepted messages
-        - Though it may somehow sacrifice a little of liveness properties, but is easy to implement
+        - Though it may somehow sacrifice a little of liveliness properties, but is easy to implement
         - In fact, the instance can be stopped if
             - there is a majority of acceptor accepted a proposal number
             - even meantime some proposer may propose new number
@@ -234,6 +234,6 @@ Some Discussions:
             - What if the leader failed?
             - What if two leader is electing?
             - Is it need to log leader election on Paxos Replicated Log?
-                - If need, then how to decide the specific sequence for such election message
+                - If necessary, then how to decide the specific sequence for such election message
                 - We will find at that time, we still need the basic to process.
         - In fact, Raft paper is better to read and just figure out the above problems by its protocol.
