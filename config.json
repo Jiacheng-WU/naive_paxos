@@ -4,7 +4,7 @@
   "after_accept_milliseconds" : 2000,
   "client_retry_milliseconds" : 4000,
   "network_send_retry_times" : 1,
-  "need_recovery" : false,
+  "need_recovery" : true,
   "id_addr_map" : [
     {
       "id": 0,

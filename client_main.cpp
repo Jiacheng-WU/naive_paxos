@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
     config->load_config(std::filesystem::path(config_filepath_str));
 
     PaxosClient client(std::move(config));
-    boost::system::error_code error;
+    // boost::system::error_code error;
 
     fmt::print("lock(1)\t: response {}\n" , magic_enum::enum_name(client.lock(1)));
     fmt::print("lock(1)\t: response {}\n" , magic_enum::enum_name(client.lock(1)));
