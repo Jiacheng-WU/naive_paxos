@@ -23,8 +23,8 @@ std::tuple<std::uint16_t, std::string, bool> parse_argument(int argc, char* argv
     } else  {
         try {
             port_number = boost::lexical_cast<uint16_t>(argv[1]);
-            if (port_number < 1024 || port_number > 49151) {
-                BOOST_LOG_TRIVIAL(warning) << fmt::format("Port {} is not a registered port, set to 0 then!\n", port_number);
+            if (port_number != 0 && (port_number < 1024 || port_number > 49151)) {
+                BOOST_LOG_TRIVIAL(warning) << fmt::format("Port {} is not a registered port in [1024, 49151], set to 0 then!\n", port_number);
                 port_number = 0;
             }
         } catch (boost::bad_lexical_cast& err) {
@@ -56,6 +56,10 @@ int main(int argc, char* argv[]) {
 
     std::unique_ptr<Config> config = std::make_unique<Config>();
     config->load_config(std::filesystem::path(config_filepath_str));
+
+    if (config->at_most_once && port_number == 0) {
+        BOOST_LOG_TRIVIAL(warning) << fmt::format("Not registered port may not support at-most once semantics!\n", port_number);
+    }
 
     PaxosClient client(std::move(config), port_number);
     // boost::system::error_code error;

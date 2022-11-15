@@ -22,8 +22,8 @@ class PaxosClient {
         local_port = socket.local_endpoint().port();
         BOOST_LOG_TRIVIAL(info) << fmt::format("The Clients port number is {}\n", local_port);
         client_op_id = 0;
-        if (config->at_most_once) {
-            auto client_log_path = config->get_client_file_path(local_port);
+        if (this->config->at_most_once) {
+            auto client_log_path = this->config->get_client_file_path(local_port);
             if (!std::filesystem::exists(client_log_path)) {
                 client_log_file.open(client_log_path, std::ios::out | std::ios::binary);
                 client_log_file.close();
@@ -37,7 +37,7 @@ class PaxosClient {
     }
 
     ~PaxosClient() {
-        if (config->at_most_once) {
+        if (this->config->at_most_once) {
             client_log_file.close();
         }
     }
