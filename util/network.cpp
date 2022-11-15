@@ -33,7 +33,8 @@ void Connection::do_send(std::unique_ptr<Message> m_p,
     m_p->serialize_to(out_buf->buffer);
     std::shared_ptr<boost::asio::ip::udp::endpoint> shared_endpoint =
             std::make_shared<boost::asio::ip::udp::endpoint>(*endpoint.release());
-    socket_.async_send_to(boost::asio::buffer(out_buf->buffer), *shared_endpoint,
+    auto var_to_force_get_buffer_ptr_before_move = boost::asio::buffer(out_buf->buffer);
+    socket_.async_send_to(var_to_force_get_buffer_ptr_before_move, *shared_endpoint,
                           [this, m_p = std::move(m_p), shared_endpoint = shared_endpoint, handler = std::move(handler), out_buf = std::move(out_buf)]
                                   (boost::system::error_code ec, std::size_t length) mutable -> void {
                               // We should first release our buffer to avoid recursive memory leak;
@@ -63,7 +64,8 @@ void Connection::do_receive(std::unique_ptr<Message> m_p, Handler handler) {
     std::shared_ptr<boost::asio::ip::udp::endpoint> shared_endpoint =
             std::make_shared<boost::asio::ip::udp::endpoint>();
     std::unique_ptr<MessageBuffer> in_buf = std::make_unique<MessageBuffer>();
-    socket_.async_receive_from(boost::asio::buffer(in_buf->buffer), *shared_endpoint,
+    auto var_to_force_get_buffer_ptr_before_move = boost::asio::buffer(in_buf->buffer);
+    socket_.async_receive_from(var_to_force_get_buffer_ptr_before_move, *shared_endpoint,
                                [this, m_p = std::move(m_p), shared_endpoint = std::move(shared_endpoint), handler = std::move(handler), in_buf = std::move(in_buf)]
                                        (boost::system::error_code ec, std::size_t length) mutable -> void {
                                    assert(length == Message::size());
