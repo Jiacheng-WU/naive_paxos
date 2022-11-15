@@ -6,9 +6,11 @@
 #define PAXOS_SYNC_HPP
 
 #include <unistd.h>
-#include <errno.h>
+
 #include <fcntl.h>
 #include <iostream>
+#include <fstream>
+#include <cerrno>
 //! Flushes buffered data and attributes written to the file to permanent storage
 inline int full_sync(std::fstream& f) {
     return f.rdbuf()->pubsync();

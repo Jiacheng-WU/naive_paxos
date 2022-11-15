@@ -35,6 +35,10 @@ class PaxosServer {
         this->number_of_nodes = this->config->number_of_nodes;
         // Since we do not want connect observe the Config thus just set here.
         this->connect->set_send_retry_time(this->config->network_send_retry_times);
+
+        if (this->config->need_recovery) {
+            recover();
+        }
     }
 
     ~PaxosServer() = default;
@@ -161,7 +165,9 @@ class PaxosServer {
     // std::uint32_t submit_cmd_seq;
 
     using object_id_t = std::uint32_t;
-    using lock_client_id_t = std::uint64_t;
+    using client_id_t = std::uint64_t;
+    using client_once_t = std::uint32_t;
+    using lock_client_id_t = client_id_t;
 
     std::unordered_map<std::uint32_t, ProposalValue> seq_to_expected_values;
 
@@ -177,6 +183,22 @@ class PaxosServer {
 
     std::set<std::unique_ptr<Message>, Message_Command_Less> cmd_min_set;
 
+
+    struct hash_pair {
+        template <class T1, class T2>
+        size_t operator()(const std::pair<T1, T2>& p) const
+        {
+            auto hash1 = std::hash<T1>{}(p.first);
+            auto hash2 = std::hash<T2>{}(p.second);
+
+            if (hash1 != hash2) {
+                return hash1 ^ hash2;
+            }
+            // If hash1 == hash2, their XOR is zero.
+            return hash1;
+        }
+    };
+    std::unordered_map<std::pair<client_id_t, client_once_t>, std::unique_ptr<Message>, hash_pair> client_ops_to_response;
 
     // connect should behave after socket for initialization orders
 };

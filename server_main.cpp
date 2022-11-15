@@ -56,10 +56,6 @@ int main(int argc, char* argv[]) {
     boost::asio::io_context io_context;
 
     PaxosServer server(io_context, current_id, std::move(config));
-    if (need_recovery) {
-        server.recover();
-    }
-
 
     boost::asio::signal_set signals(io_context, SIGINT | SIGTERM);
     signals.async_wait([&server, &io_context](const boost::system::error_code& error, int signal_number ) {

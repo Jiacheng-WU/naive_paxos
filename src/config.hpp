@@ -26,9 +26,12 @@ struct Config {
     std::uint32_t network_send_retry_times = 1;
 
     bool need_recovery = false;
+    bool at_most_once = false;
 
     std::filesystem::path get_acceptor_file_path(server_id_t server_id);
     std::filesystem::path get_learner_file_path(server_id_t server_id);
+
+    std::filesystem::path get_client_file_path(std::uint16_t port);
 
     boost::log::trivial::severity_level log_level = boost::log::trivial::info;
 

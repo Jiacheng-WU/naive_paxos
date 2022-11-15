@@ -91,9 +91,11 @@ std::unique_ptr<Message> Learner::on_inform(std::unique_ptr<Message> inform) {
     this->highest_accepted_proposal_value = inform->proposal.value;
     this->instance->deadline_timer.cancel();
 
-    this->instance->server->logger->write_learner_log(this->instance->seq,
-                                                       {this->instance->seq, this->highest_accepted_proposal_number, this->highest_accepted_proposal_value});
-
+    if (this->instance->server->config->need_recovery) {
+        this->instance->server->logger->write_learner_log(this->instance->seq,
+                                                          {this->instance->seq, this->highest_accepted_proposal_number,
+                                                           this->highest_accepted_proposal_value});
+    }
     std::unique_ptr<Message> command = std::move(inform);
     command->type = MessageType::COMMAND;
     return std::move(command);

@@ -45,6 +45,11 @@ class Logger {
 
     }
 
+    ~Logger() {
+        acceptor_log_file.close();
+        learner_log_file.close();
+    }
+
     inline static constexpr const std::uint32_t basic_file_state_blocks = 1024;
     inline static constexpr const char acceptor_append_buffer[basic_file_state_blocks * AcceptorState::size()] = {};
     inline static constexpr const char learner_append_buffer[basic_file_state_blocks * LearnerState::size()] = {};

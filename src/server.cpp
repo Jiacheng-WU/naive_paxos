@@ -232,11 +232,28 @@ std::unique_ptr<Message> PaxosServer::on_submit_of_server(std::unique_ptr<Messag
 
 
 std::unique_ptr<Message> PaxosServer::execute_command(std::unique_ptr<Message> command) {
+    std::uint64_t command_client_id = command->proposal.value.client_id;
+    std::uint32_t command_client_once = command->proposal.value.client_once;
+    // At once semantics
+    if (config->at_most_once) {
+        if (client_ops_to_response.contains(
+                std::pair<client_id_t, client_once_t>{command_client_id, command_client_once})) {
+            // Get the response and do not apply command on server state;
+            std::unique_ptr<Message> &response = client_ops_to_response[std::pair<client_id_t, client_once_t>{
+                    command_client_id, command_client_once}];
+            if (response == nullptr) {
+                return nullptr;
+            } else {
+                return std::move(response->clone());
+            }
+        }
+    }
+
     ProposalValue cmd = command->proposal.value;
     switch (cmd.operation) {
-        case ProposalValue::UNDEFINED: {
-            break;
-        }
+//        case ProposalValue::UNDEFINED: {
+//            break;
+//        }
 //        case ProposalValue::ELECT_LEADER: {
 //            if (leader_id != cmd.object) {
 //                if (leader_id == id) {
@@ -269,6 +286,11 @@ std::unique_ptr<Message> PaxosServer::execute_command(std::unique_ptr<Message> c
             } else {
                 response->proposal.value.operation = ProposalValue::LOCK_FAILED;
             }
+            if (config->at_most_once) {
+                client_ops_to_response.emplace(
+                        std::pair<client_id_t, client_once_t>{command_client_id, command_client_once},
+                        std::move(response->clone()));
+            }
             return std::move(response);
             break;
         }
@@ -289,10 +311,20 @@ std::unique_ptr<Message> PaxosServer::execute_command(std::unique_ptr<Message> c
             } else {
                 response->proposal.value.operation = ProposalValue::UNLOCK_FAILED;
             }
+            if (config->at_most_once) {
+                client_ops_to_response.emplace(
+                        std::pair<client_id_t, client_once_t>{command_client_id, command_client_once},
+                        std::move(response->clone()));
+            }
             return std::move(response);
             break;
         }
         case ProposalValue::NOOPS: {
+            if (config->at_most_once) {
+                client_ops_to_response.emplace(
+                        std::pair<client_id_t, client_once_t>{command_client_id, command_client_once},
+                        nullptr);
+            }
             break;
         }
         default: {
@@ -397,20 +429,23 @@ std::vector<std::unique_ptr<Message>> PaxosServer::try_execute_commands(std::uni
 }
 
 void PaxosServer::recover()  {
-    std::vector<std::uint32_t> hole_sequence;
-    std::uint32_t min_sequence, max_sequence;
-    bool need_recover = this->logger->recover_from_log(hole_sequence, min_sequence, max_sequence);
-    if (need_recover) {
-        for(std::size_t i = 1; i <= min_sequence; i++) {
-            std::unique_ptr<Message> command = std::make_unique<Message>();
-            command->sequence = i;
-            command->proposal.number = this->instances.get_instance(i)->learner.get_learned_proposal_number();
-            command->proposal.value = this->instances.get_instance(i)->learner.get_learned_proposal_value();
-            std::unique_ptr<Message> response = this->execute_command(std::move(command));
+    if (config->need_recovery) {
+        std::vector<std::uint32_t> hole_sequence;
+        std::uint32_t min_sequence, max_sequence;
+        bool need_recovery = this->logger->recover_from_log(hole_sequence, min_sequence, max_sequence);
+        if (need_recovery) {
+            for (std::size_t i = 1; i <= min_sequence; i++) {
+                std::unique_ptr<Message> command = std::make_unique<Message>();
+                command->sequence = i;
+                command->proposal.number = this->instances.get_instance(i)->learner.get_learned_proposal_number();
+                command->proposal.value = this->instances.get_instance(i)->learner.get_learned_proposal_value();
+                std::unique_ptr<Message> response = this->execute_command(std::move(command));
+            }
+            BOOST_LOG_TRIVIAL(info)
+                << fmt::format("Server {} : Minimum Consecutive Commands Sequence {}\n", id, min_sequence);
+            this->executed_cmd_seq = min_sequence;
+            // Propose no ops to hole_sequence and to learn server_id;
         }
-        BOOST_LOG_TRIVIAL(info) << fmt::format("Server {} : Minimum Consecutive Commands Sequence {}\n", id, min_sequence);
-        this->executed_cmd_seq = min_sequence;
-        // Propose no ops to hole_sequence and to learn server_id;
     }
 }
 

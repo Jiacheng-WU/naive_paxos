@@ -19,7 +19,7 @@ PaxosClient::construct_lock_or_unlock_message(std::uint32_t object_id, PaxosClie
     return std::move(lock_request);
 }
 
-PaxosClient::op_result_type PaxosClient::lock_or_unlock(std::uint32_t object_id, PaxosClient::op_type op)  {
+std::pair<PaxosClient::op_result_type, std::uint32_t> PaxosClient::lock_or_unlock(std::uint32_t object_id, PaxosClient::op_type op)  {
     std::unique_ptr<Message> submit = construct_lock_or_unlock_message(object_id, op);
     submit->serialize_to(out_message);
 
@@ -45,5 +45,8 @@ PaxosClient::op_result_type PaxosClient::lock_or_unlock(std::uint32_t object_id,
         response->deserialize_from(in_message);
     }
 
-    return translate_message_operation_to_result(response->proposal.value.operation);
+    if (config->at_most_once) {
+        write_client_op_id(client_op_id);
+    }
+    return {translate_message_operation_to_result(response->proposal.value.operation), response->proposal.value.object};
 }

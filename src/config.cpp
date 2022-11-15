@@ -49,6 +49,7 @@ bool Config::load_config(std::filesystem::path json_filepath) {
     this->client_retry_milliseconds = data.at("client_retry_milliseconds").get<std::uint32_t>();
     this->network_send_retry_times = data.at("network_send_retry_times").get<std::uint32_t>();
     this->need_recovery = data.at("need_recovery").get<bool>();
+    this->at_most_once = data.at("at_most_once").get<bool>();
     if (data.contains("id_addr_map") && data["id_addr_map"].is_array()) {
         nlohmann::json id_addr_map_config = data["id_addr_map"];
         for (auto& id_addr : id_addr_map_config) {
@@ -98,4 +99,8 @@ void Config::log_detail_infos() const {
         BOOST_LOG_TRIVIAL(debug) << fmt::format("\t id : {} , addr: {}:{} ",
                                                 id, addr.address().to_string(), addr.port());
     }
+}
+
+std::filesystem::path Config::get_client_file_path(std::uint16_t port) {
+    return std::filesystem::path(fmt::format("./client{}.log", port));
 }

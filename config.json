@@ -5,6 +5,7 @@
   "client_retry_milliseconds" : 4000,
   "network_send_retry_times" : 1,
   "need_recovery" : true,
+  "at_most_once" : true,
   "id_addr_map" : [
     {
       "id": 0,
