@@ -66,7 +66,7 @@ void Connection::do_receive(std::unique_ptr<Message> m_p, Handler handler) {
     std::unique_ptr<MessageBuffer> in_buf = std::make_unique<MessageBuffer>();
     auto var_to_force_get_buffer_ptr_before_move = boost::asio::buffer(in_buf->buffer);
     socket_.async_receive_from(var_to_force_get_buffer_ptr_before_move, *shared_endpoint,
-                               [this, m_p = std::move(m_p), shared_endpoint = std::move(shared_endpoint), handler = std::move(handler), in_buf = std::move(in_buf)]
+                               [this, m_p = std::move(m_p), shared_endpoint = shared_endpoint, handler = std::move(handler), in_buf = std::move(in_buf)]
                                        (boost::system::error_code ec, std::size_t length) mutable -> void {
                                    assert(length == Message::size());
                                    // We should first deserialize and avoid recursive memory leakage
