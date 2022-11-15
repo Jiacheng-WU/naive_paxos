@@ -18,11 +18,19 @@ std::unique_ptr<boost::asio::ip::udp::endpoint> get_udp_ipv4_endpoint_from_uint6
     return std::make_unique<boost::asio::ip::udp::endpoint>(boost::asio::ip::make_address_v4(ip), port);
 }
 
+std::uint16_t get_udp_port_from_uint64_t(uint64_t compressed) {
+    uint32_t port = compressed & 0xFFFFFFFF;
+    return port;
+}
+
 std::uint32_t get_random_number(std::uint32_t begin, std::uint32_t end) {
     std::random_device rd;
     std::uniform_int_distribution<std::uint32_t> ud(begin,end);
     std::mt19937 mt(rd());
     return ud(mt);
+}
+bool is_registered_port(std::uint16_t port_number) {
+    return port_number >= 1024 && port_number <= 49151;
 }
 
 void Connection::do_send(std::unique_ptr<Message> m_p,

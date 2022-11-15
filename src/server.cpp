@@ -241,7 +241,8 @@ std::unique_ptr<Message> PaxosServer::execute_command(std::unique_ptr<Message> c
     std::uint64_t command_client_id = command->proposal.value.client_id;
     std::uint32_t command_client_once = command->proposal.value.client_once;
     // At once semantics
-    if (config->at_most_once) {
+    bool need_at_most_once_semantics = config->at_most_once && is_registered_port(get_udp_port_from_uint64_t(command_client_id));
+    if (need_at_most_once_semantics) {
         if (client_ops_to_response.contains(
                 std::pair<client_id_t, client_once_t>{command_client_id, command_client_once})) {
             // Get the response and do not apply command on server state;
@@ -257,24 +258,6 @@ std::unique_ptr<Message> PaxosServer::execute_command(std::unique_ptr<Message> c
 
     ProposalValue cmd = command->proposal.value;
     switch (cmd.operation) {
-//        case ProposalValue::UNDEFINED: {
-//            break;
-//        }
-//        case ProposalValue::ELECT_LEADER: {
-//            if (leader_id != cmd.object) {
-//                if (leader_id == id) {
-//                    stop_leader_heartbeat();
-//                }
-//                leader_id = cmd.object;
-//                if (leader_id == id) {
-//                    start_leader_heartbeat();
-//                    nonleader_heartbeat_timer.cancel();
-//                } else {
-//                    reset_nonleader_heartbeat();
-//                }
-//            }
-//            break;
-//        }
         case ProposalValue::LOCK: {
             std::unique_ptr<Message> response = std::move(command);
             response->type = MessageType::RESPONSE;
@@ -292,7 +275,7 @@ std::unique_ptr<Message> PaxosServer::execute_command(std::unique_ptr<Message> c
             } else {
                 response->proposal.value.operation = ProposalValue::LOCK_FAILED;
             }
-            if (config->at_most_once) {
+            if (need_at_most_once_semantics) {
                 client_ops_to_response.emplace(
                         std::pair<client_id_t, client_once_t>{command_client_id, command_client_once},
                         std::move(response->clone()));
@@ -317,7 +300,7 @@ std::unique_ptr<Message> PaxosServer::execute_command(std::unique_ptr<Message> c
             } else {
                 response->proposal.value.operation = ProposalValue::UNLOCK_FAILED;
             }
-            if (config->at_most_once) {
+            if (need_at_most_once_semantics) {
                 client_ops_to_response.emplace(
                         std::pair<client_id_t, client_once_t>{command_client_id, command_client_once},
                         std::move(response->clone()));
@@ -326,7 +309,7 @@ std::unique_ptr<Message> PaxosServer::execute_command(std::unique_ptr<Message> c
             break;
         }
         case ProposalValue::NOOPS: {
-            if (config->at_most_once) {
+            if (need_at_most_once_semantics) {
                 client_ops_to_response.emplace(
                         std::pair<client_id_t, client_once_t>{command_client_id, command_client_once},
                         nullptr);
