@@ -115,11 +115,11 @@ struct Message {
     }
 
 // #warning "IGNORE LITTLE ENDIAN OR LARGE ENDIAN"
-    void serialize_to(std::uint8_t buffer[size()]) {
+    void serialize_to(std::uint8_t buffer[]) {
         memcpy(buffer, this, size());
     }
 
-    void deserialize_from(std::uint8_t buffer[size()]) {
+    void deserialize_from(std::uint8_t buffer[]) {
         memcpy(this, buffer, size());
     }
 
@@ -151,11 +151,11 @@ struct AcceptorState {
     [[nodiscard]] static consteval std::size_t size() {
         return sizeof(AcceptorState);
     }
-    void serialize_to(char buffer[size()]) {
+    void serialize_to(char buffer[]) {
         memcpy(buffer, this, size());
     }
 
-    void deserialize_from(char buffer[size()]) {
+    void deserialize_from(char buffer[]) {
         memcpy(this, buffer, size());
     }
 };
@@ -167,11 +167,11 @@ struct LearnerState {
     [[nodiscard]] static consteval std::size_t size() {
         return sizeof(LearnerState);
     }
-    void serialize_to(char buffer[size()]) {
+    void serialize_to(char buffer[]) {
         memcpy(buffer, this, size());
     }
 
-    void deserialize_from(char buffer[size()]) {
+    void deserialize_from(char buffer[]) {
         memcpy(this, buffer, size());
     }
 };
