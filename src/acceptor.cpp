@@ -97,6 +97,9 @@ std::unique_ptr<Message> Acceptor::on_accept(std::unique_ptr<Message> accept) {
                                                 this->instance->server->get_id(),
                                                 accept->proposal.number);
 
+        // It is saft to update highest prepare proposal number since
+        // accept->proposal.number >= highest_prepare_proposal_number
+        this->highest_prepare_proposal_number = accept->proposal.number;
         this->highest_accepted_proposal_number = accept->proposal.number;
         this->highest_accepted_proposal_value = accept->proposal.value;
         if (this->instance->server->config->need_recovery) {

@@ -173,6 +173,8 @@ Some Discussions:
         - Even we could image an extreme case, that is
             - Propose P1 first receives promise from A1, A2
             - And the P1 just sends accept to A2, A3. It is still works
+            - But for efficiency and reasonable,
+            - it is better to update highest_prepare_proposal_number as well
 
     * In multi-paxos, the leader could skip the PREPARE in Phase 1, but what proposal number should it propose!
         - It must be the least proposal should have
