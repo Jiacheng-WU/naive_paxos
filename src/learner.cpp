@@ -14,7 +14,7 @@ Learner::Learner(Instance *inst) : instance(inst) {
 
 std::unique_ptr<Message> Learner::on_accepted(std::unique_ptr<Message> accepted) {
 
-    BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Learner {} - on_accepted\n",
+    BOOST_LOG_TRIVIAL(trace) << std::format("Inst Seq {} : Learner {} - on_accepted\n",
                                             accepted->sequence, this->instance->server->get_id());
 
     std::lock_guard<std::mutex> lock(learner_mutex);
@@ -49,7 +49,7 @@ std::unique_ptr<Message> Learner::on_accepted(std::unique_ptr<Message> accepted)
 
 std::unique_ptr<Message> Learner::on_rejected(std::unique_ptr<Message> rejected) {
 
-    BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Learner {} - on_rejected\n",
+    BOOST_LOG_TRIVIAL(trace) << std::format("Inst Seq {} : Learner {} - on_rejected\n",
                                             rejected->sequence, this->instance->server->get_id());
 
     return nullptr;
@@ -58,7 +58,7 @@ std::unique_ptr<Message> Learner::on_rejected(std::unique_ptr<Message> rejected)
 
 void Learner::inform(std::unique_ptr<Message> inform) {
 
-    BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Learner {} Inform Number {} Value {} {}\n",
+    BOOST_LOG_TRIVIAL(debug) << std::format("Inst Seq {} : Learner {} Inform Number {} Value {} {}\n",
                                             inform->sequence,
                                             this->instance->server->get_id(),
                                             inform->proposal.number,
@@ -73,14 +73,14 @@ void Learner::inform(std::unique_ptr<Message> inform) {
         std::unique_ptr<Message> inform_copy = inform->clone();
         std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint = this->instance->server->config->get_addr_by_id(
                 node_id);
-        BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Learner {} Async Send Inform to Learner {}\n",
+        BOOST_LOG_TRIVIAL(trace) << std::format("Inst Seq {} : Learner {} Async Send Inform to Learner {}\n",
                                                 inform_copy->sequence, this->instance->server->get_id(), node_id);
         this->instance->server->connect->do_send(std::move(inform_copy), std::move(endpoint), do_nothing_handler);
     }
 }
 
 std::unique_ptr<Message> Learner::on_inform(std::unique_ptr<Message> inform) {
-    BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Learner {} - on_inform\n",
+    BOOST_LOG_TRIVIAL(trace) << std::format("Inst Seq {} : Learner {} - on_inform\n",
                                             inform->sequence, this->instance->server->get_id());
 
     std::lock_guard<std::mutex> lock(learner_mutex);

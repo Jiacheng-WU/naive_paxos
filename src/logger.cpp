@@ -15,10 +15,10 @@ bool Logger::recover_from_log(std::vector<std::uint32_t> &hole_sequence,
     std::uint32_t learner_log_items = learner_log_filesize / sizeof(LearnerState);
 
     BOOST_LOG_TRIVIAL(info)
-        << fmt::format("Server {} : Acceptor Log size {} item {}\n", this->server->get_id(), acceptor_log_filesize,
+        << std::format("Server {} : Acceptor Log size {} item {}\n", this->server->get_id(), acceptor_log_filesize,
                        acceptor_log_items);
     BOOST_LOG_TRIVIAL(info)
-        << fmt::format("Server {} : Learner Log size {} item {}\n", this->server->get_id(), learner_log_filesize,
+        << std::format("Server {} : Learner Log size {} item {}\n", this->server->get_id(), learner_log_filesize,
                        learner_log_items);
 
     for (std::uint32_t i = 1; i < acceptor_log_items; i++) {

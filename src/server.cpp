@@ -41,7 +41,7 @@ void PaxosServer::dispatch_paxos_message(std::unique_ptr<Message> m_p,
     // assert(Config::server_id_to_map[m_p->from_id] == *endpoint);
     uint32_t instance_seq = m_p->sequence;
     Instance *instance = instances.get_instance(instance_seq);
-    BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} recv {} Message from Endpoint {}:{}\n",
+    BOOST_LOG_TRIVIAL(debug) << std::format("Inst Seq {} : Server {} recv {} Message from Endpoint {}:{}\n",
                                             instance_seq, this->get_id(),
                                             magic_enum::enum_name(m_p->type),
                                             endpoint->address().to_string(),
@@ -95,7 +95,7 @@ void PaxosServer::dispatch_paxos_message(std::unique_ptr<Message> m_p,
                 // If we received majority of request, the we need to resubmit the proposal and prepare again
                 std::unique_ptr<boost::asio::ip::udp::endpoint> client_endpoint = get_udp_ipv4_endpoint_from_uint64_t(
                         resubmit->proposal.value.client_id);
-                BOOST_LOG_TRIVIAL(debug) << fmt::format(
+                BOOST_LOG_TRIVIAL(debug) << std::format(
                             "Inst Seq {} : Server {} Need Resubmit {} {} from Client {}:{} {} since Instance received majority Denial\n",
                             resubmit->sequence, this->get_id(),
                             magic_enum::enum_name(resubmit->proposal.value.operation),
@@ -135,7 +135,7 @@ void PaxosServer::dispatch_paxos_message(std::unique_ptr<Message> m_p,
                 // Add random delay for submit again
                 std::unique_ptr<boost::asio::ip::udp::endpoint> client_endpoint = get_udp_ipv4_endpoint_from_uint64_t(
                         resubmit->proposal.value.client_id);
-                BOOST_LOG_TRIVIAL(debug) << fmt::format(
+                BOOST_LOG_TRIVIAL(debug) << std::format(
                             "Inst Seq {} : Server {} Need Resubmit {} {} from Client {}:{} {} since Instance didn't select this Commands\n",
                             resubmit->sequence, this->get_id(),
                             magic_enum::enum_name(resubmit->proposal.value.operation),
@@ -198,7 +198,7 @@ void PaxosServer::dispatch_server_message(std::unique_ptr<Message> m_p,
                 submit->proposal.value.client_id = get_uint64_from_udp_ipv4_endpoint(endpoint);
 
                 BOOST_LOG_TRIVIAL(debug)
-                    << fmt::format("Inst Seq {} : Server {} Recv Submit {} {} from Client {}:{} {}\n",
+                    << std::format("Inst Seq {} : Server {} Recv Submit {} {} from Client {}:{} {}\n",
                                    submit->sequence, this->get_id(),
                                    magic_enum::enum_name(submit->proposal.value.operation),
                                    submit->proposal.value.object,
@@ -345,7 +345,7 @@ std::unique_ptr<Message> PaxosServer::response(std::unique_ptr<Message> response
 
     std::unique_ptr<boost::asio::ip::udp::endpoint> client_endpoint = get_udp_ipv4_endpoint_from_uint64_t(
             response->proposal.value.client_id);
-    BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Async Send Response {} {} to Client {}:{} {}\n",
+    BOOST_LOG_TRIVIAL(debug) << std::format("Inst Seq {} : Server {} Async Send Response {} {} to Client {}:{} {}\n",
                                             response->sequence, this->get_id(),
                                             magic_enum::enum_name(response->proposal.value.operation),
                                             response->proposal.value.object,
@@ -366,7 +366,7 @@ std::vector<std::unique_ptr<Message>> PaxosServer::try_execute_commands(std::uni
     if (command->sequence == executed_cmd_seq + 1) {
         std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint = get_udp_ipv4_endpoint_from_uint64_t(
                 command->proposal.value.client_id);
-        BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} Execute Command {} {} from Client {}:{} {}\n",
+        BOOST_LOG_TRIVIAL(debug) << std::format("Inst Seq {} : Server {} Execute Command {} {} from Client {}:{} {}\n",
                                                 command->sequence, this->get_id(),
                                                 magic_enum::enum_name(command->proposal.value.operation),
                                                 command->proposal.value.object,
@@ -375,7 +375,7 @@ std::vector<std::unique_ptr<Message>> PaxosServer::try_execute_commands(std::uni
                                                 command->proposal.value.client_once);
         std::unique_ptr<Message> response = execute_command(std::move(command));
         if (response != nullptr) {
-            BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Server {} Command Result {} {} to Client {}:{} {}\n",
+            BOOST_LOG_TRIVIAL(trace) << std::format("Inst Seq {} : Server {} Command Result {} {} to Client {}:{} {}\n",
                                                     response->sequence, this->get_id(),
                                                     magic_enum::enum_name(response->proposal.value.operation),
                                                     response->proposal.value.object,
@@ -393,7 +393,7 @@ std::vector<std::unique_ptr<Message>> PaxosServer::try_execute_commands(std::uni
                 std::unique_ptr<boost::asio::ip::udp::endpoint> next_endpoint = get_udp_ipv4_endpoint_from_uint64_t(
                         next_command->proposal.value.client_id);
                 BOOST_LOG_TRIVIAL(debug)
-                    << fmt::format("Inst Seq {} : Server {} Execute Command {} {} from Client {}:{} {}\n",
+                    << std::format("Inst Seq {} : Server {} Execute Command {} {} from Client {}:{} {}\n",
                                    next_command->sequence, this->get_id(),
                                    magic_enum::enum_name(next_command->proposal.value.operation),
                                    next_command->proposal.value.object,
@@ -404,7 +404,7 @@ std::vector<std::unique_ptr<Message>> PaxosServer::try_execute_commands(std::uni
                 executed_cmd_seq++;
                 if (next_response != nullptr) {
                     BOOST_LOG_TRIVIAL(trace)
-                        << fmt::format("Inst Seq {} : Server {} Command Result {} {} to Client {}:{} {}\n",
+                        << std::format("Inst Seq {} : Server {} Command Result {} {} to Client {}:{} {}\n",
                                        next_response->sequence, this->get_id(),
                                        magic_enum::enum_name(next_response->proposal.value.operation),
                                        next_response->proposal.value.object,
@@ -418,11 +418,11 @@ std::vector<std::unique_ptr<Message>> PaxosServer::try_execute_commands(std::uni
             }
         }
     } else if (command->sequence <= executed_cmd_seq) {
-        BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} already executed\n",
+        BOOST_LOG_TRIVIAL(debug) << std::format("Inst Seq {} : Server {} already executed\n",
                                                 command->sequence, this->get_id());
     } else {
         // Here is a hole
-        BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Server {} cannot executed due to holes exist\n",
+        BOOST_LOG_TRIVIAL(debug) << std::format("Inst Seq {} : Server {} cannot executed due to holes exist\n",
                                                 command->sequence, this->get_id());
         cmd_min_set.emplace(std::move(command));
     }
@@ -443,7 +443,7 @@ void PaxosServer::recover() {
                 std::unique_ptr<Message> response = this->execute_command(std::move(command));
             }
             BOOST_LOG_TRIVIAL(info)
-                << fmt::format("Server {} : Minimum Consecutive Commands Sequence {}\n", id, min_sequence);
+                << std::format("Server {} : Minimum Consecutive Commands Sequence {}\n", id, min_sequence);
             this->executed_cmd_seq = min_sequence;
             // Propose no ops to hole_sequence and to learn server_id;
         }

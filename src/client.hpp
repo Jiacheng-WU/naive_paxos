@@ -7,6 +7,7 @@
 
 #include <cstring>
 #include <fstream>
+#include <format>
 #include <boost/asio.hpp>
 #include "config.hpp"
 #include "sync.hpp"
@@ -21,7 +22,7 @@ class PaxosClient {
             socket(io_context,
                    boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), port)) {
         local_port = socket.local_endpoint().port();
-        BOOST_LOG_TRIVIAL(info) << fmt::format("The Clients port number is {}\n", local_port);
+        BOOST_LOG_TRIVIAL(info) << std::format("The Clients port number is {}\n", local_port);
         client_op_id = 0;
         if (this->config->at_most_once) {
             auto client_log_path = this->config->get_client_file_path(local_port);

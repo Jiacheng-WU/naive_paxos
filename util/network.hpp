@@ -17,7 +17,6 @@
 #include <boost/log/expressions.hpp>
 
 #include "message.hpp"
-#include "fmt/core.h"
 
 
 inline constexpr const uint64_t unused_udp_ipv4_number = ~0ull;
@@ -77,7 +76,7 @@ class Connection {
                     return;
                 } else {
                     // Handle errors
-                    BOOST_LOG_TRIVIAL(debug) << fmt::format("Failed to send {}:{} with error {}\n",
+                    BOOST_LOG_TRIVIAL(debug) << std::format("Failed to send {}:{} with error {}\n",
                                                             endpoint->address().to_string(),
                                                             endpoint->port(),
                                                             paras.ec.message());

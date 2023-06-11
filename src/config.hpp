@@ -9,6 +9,7 @@
 #include <map>
 #include <filesystem>
 #include <sstream>
+#include <format>
 #include <boost/asio.hpp>
 #include <boost/log/core.hpp>
 #include <boost/log/trivial.hpp>

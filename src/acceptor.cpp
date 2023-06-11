@@ -8,7 +8,7 @@
 
 std::unique_ptr<Message> Acceptor::on_prepare(std::unique_ptr<Message> prepare) {
 
-    BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Acceptor {} - on_prepare\n",
+    BOOST_LOG_TRIVIAL(trace) << std::format("Inst Seq {} : Acceptor {} - on_prepare\n",
                                             prepare->sequence, this->instance->server->get_id());
 
     std::lock_guard<std::mutex> lock(acceptor_mutex);
@@ -31,7 +31,7 @@ std::unique_ptr<Message> Acceptor::on_prepare(std::unique_ptr<Message> prepare) 
         return std::move(denial);
     } else {
 
-        BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Acceptor {} Prepare Number {}\n",
+        BOOST_LOG_TRIVIAL(debug) << std::format("Inst Seq {} : Acceptor {} Prepare Number {}\n",
                                                 prepare->sequence,
                                                 this->instance->server->get_id(),
                                                 prepare->proposal.number);
@@ -55,7 +55,7 @@ std::unique_ptr<Message> Acceptor::on_prepare(std::unique_ptr<Message> prepare) 
         promise->proposal.value = highest_accepted_proposal_value;
         promise->prepare_proposal_number = prepare_proposal_number;
 
-        BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Acceptor {} Promise Number {} Value {} {} \n",
+        BOOST_LOG_TRIVIAL(debug) << std::format("Inst Seq {} : Acceptor {} Promise Number {} Value {} {} \n",
                                                 promise->sequence,
                                                 this->instance->server->get_id(),
                                                 promise->proposal.number,
@@ -69,7 +69,7 @@ std::unique_ptr<Message> Acceptor::on_prepare(std::unique_ptr<Message> prepare) 
 
 std::unique_ptr<Message> Acceptor::on_accept(std::unique_ptr<Message> accept) {
 
-    BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Acceptor {} - on_accept\n",
+    BOOST_LOG_TRIVIAL(trace) << std::format("Inst Seq {} : Acceptor {} - on_accept\n",
                                             accept->sequence, this->instance->server->get_id());
 
     std::lock_guard<std::mutex> lock(acceptor_mutex);
@@ -92,7 +92,7 @@ std::unique_ptr<Message> Acceptor::on_accept(std::unique_ptr<Message> accept) {
         rejected->accept_proposal_number = accept_proposal_number;
         return std::move(rejected);
     } else {
-        BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Acceptor {} Accept Number {}\n",
+        BOOST_LOG_TRIVIAL(debug) << std::format("Inst Seq {} : Acceptor {} Accept Number {}\n",
                                                 accept->sequence,
                                                 this->instance->server->get_id(),
                                                 accept->proposal.number);
@@ -114,7 +114,7 @@ std::unique_ptr<Message> Acceptor::on_accept(std::unique_ptr<Message> accept) {
         accepted->type = MessageType::ACCEPTED;
         // Since it is accepted, it is not necessary to modify the proposal value or number
         accepted->accept_proposal_number = accept_proposal_number;
-        BOOST_LOG_TRIVIAL(debug) << fmt::format("Inst Seq {} : Acceptor {} Accepted Number {} Value {} {} \n",
+        BOOST_LOG_TRIVIAL(debug) << std::format("Inst Seq {} : Acceptor {} Accepted Number {} Value {} {} \n",
                                                 accepted->sequence,
                                                 this->instance->server->get_id(),
                                                 accepted->proposal.number,
@@ -125,7 +125,7 @@ std::unique_ptr<Message> Acceptor::on_accept(std::unique_ptr<Message> accept) {
 }
 
 void Acceptor::promise(std::unique_ptr<Message> promise) {
-    BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Acceptor {} Async Send Promise to Proposer {}\n",
+    BOOST_LOG_TRIVIAL(trace) << std::format("Inst Seq {} : Acceptor {} Async Send Promise to Proposer {}\n",
                                             promise->sequence, this->instance->server->get_id(), promise->from_id);
     auto endpoint = this->instance->server->config->get_addr_by_id(promise->from_id);
     promise->from_id = this->instance->server->get_id();
@@ -133,7 +133,7 @@ void Acceptor::promise(std::unique_ptr<Message> promise) {
 }
 
 void Acceptor::denial(std::unique_ptr<Message> denial) {
-    BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Acceptor {} Async Send Denial to Proposer {}\n",
+    BOOST_LOG_TRIVIAL(trace) << std::format("Inst Seq {} : Acceptor {} Async Send Denial to Proposer {}\n",
                                             denial->sequence, this->instance->server->get_id(), denial->from_id);
     auto endpoint = this->instance->server->config->get_addr_by_id(denial->from_id);
     denial->from_id = this->instance->server->get_id();
@@ -141,7 +141,7 @@ void Acceptor::denial(std::unique_ptr<Message> denial) {
 }
 
 void Acceptor::accepted(std::unique_ptr<Message> accepted) {
-    BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Acceptor {} Async Send Accepted to Learner {}\n",
+    BOOST_LOG_TRIVIAL(trace) << std::format("Inst Seq {} : Acceptor {} Async Send Accepted to Learner {}\n",
                                             accepted->sequence, this->instance->server->get_id(), accepted->from_id);
     auto endpoint = this->instance->server->config->get_addr_by_id(accepted->from_id);
     accepted->from_id = this->instance->server->get_id();
@@ -149,7 +149,7 @@ void Acceptor::accepted(std::unique_ptr<Message> accepted) {
 }
 
 void Acceptor::rejected(std::unique_ptr<Message> rejected) {
-    BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Acceptor {} Async Send Rejected to Learner {}\n",
+    BOOST_LOG_TRIVIAL(trace) << std::format("Inst Seq {} : Acceptor {} Async Send Rejected to Learner {}\n",
                                             rejected->sequence, this->instance->server->get_id(), rejected->from_id);
     auto endpoint = this->instance->server->config->get_addr_by_id(rejected->from_id);
     rejected->from_id = this->instance->server->get_id();
@@ -157,7 +157,7 @@ void Acceptor::rejected(std::unique_ptr<Message> rejected) {
 }
 
 void Acceptor::inform_to_outdated_proposal(std::unique_ptr<Message> inform) {
-    BOOST_LOG_TRIVIAL(trace) << fmt::format("Inst Seq {} : Acceptor {} Async Send Inform to Proposer {}\n",
+    BOOST_LOG_TRIVIAL(trace) << std::format("Inst Seq {} : Acceptor {} Async Send Inform to Proposer {}\n",
                                             inform->sequence, this->instance->server->get_id(), inform->from_id);
     auto endpoint = this->instance->server->config->get_addr_by_id(inform->from_id);
     // inform->from_id = this->instance->server->get_id();

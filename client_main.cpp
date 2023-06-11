@@ -26,7 +26,7 @@ std::tuple<std::uint16_t, std::string, std::string> parse_argument(int argc, cha
     std::string config_filepath_str = "../config.json";
     std::string test_filepath_str = "";
     if (argc == 1 || argc >= 5) {
-        fmt::print("{} {} {} {}\n", "program_name",
+        std::cout << std::format("{} {} {} {}\n", "program_name",
                    "(port [could set to 0 if not specified])", "(config path)",
                    "(testfile path [not specified means interactive mode])");
         exit(0);
@@ -35,11 +35,11 @@ std::tuple<std::uint16_t, std::string, std::string> parse_argument(int argc, cha
             port_number = boost::lexical_cast<uint16_t>(argv[1]);
             if (!is_registered_port(port_number)) {
                 BOOST_LOG_TRIVIAL(warning)
-                    << fmt::format("Port {} is not a registered port in [1024, 49151], set to 0 then!\n", port_number);
+                    << std::format("Port {} is not a registered port in [1024, 49151], set to 0 then!\n", port_number);
                 port_number = 0;
             }
         } catch (boost::bad_lexical_cast &err) {
-            fmt::print("{} {} {} {}\n", "program_name",
+            std::cout << std::format("{} {} {} {}\n", "program_name",
                        "port [could set to 0 if not specified]", "config path",
                        "(testfile path [not specified means interactive mode])");
             exit(0);
@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
 
     if (config->at_most_once && port_number == 0) {
         BOOST_LOG_TRIVIAL(warning)
-            << fmt::format("Not registered port may not support at-most once semantics!\n", port_number);
+            << std::format("Not registered port may not support at-most once semantics!\n", port_number);
         config->at_most_once = false;
     }
 
@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
     if (test_filepath_str != std::string("")) {
         std::filesystem::path test_filepath = std::filesystem::path(test_filepath_str);
         if (!std::filesystem::exists(test_filepath)) {
-            BOOST_LOG_TRIVIAL(warning) << fmt::format("Cannot Find test file {}, Become Interative!!!\n",
+            BOOST_LOG_TRIVIAL(warning) << std::format("Cannot Find test file {}, Become Interative!!!\n",
                                                       test_filepath.generic_string());
         } else {
             fin.open(test_filepath);
@@ -106,7 +106,7 @@ int main(int argc, char *argv[]) {
                                     [](const std::string &x) { return x.empty(); }),
                      result.end());
         if (result.size() != 2) {
-            fmt::print("Invalid Command : {}\n", command_format);
+            std::cout << std::format("Invalid Command : {}\n", command_format);
             continue;
         }
         std::string operation = result[0];
@@ -115,30 +115,30 @@ int main(int argc, char *argv[]) {
         try {
             object_id = boost::lexical_cast<uint32_t>(object_id_string);
         } catch (boost::bad_lexical_cast &err) {
-            fmt::print("Invalid Argument : {}\n", command_format);
+            std::cout << std::format("Invalid Argument : {}\n", command_format);
             continue;
         }
         boost::to_lower(operation);
         if (operation == std::string("lock")) {
             auto [response_op, response_object_id, response_server_id] = client.lock(object_id);
-            fmt::print("lock({})   response from server {} :  {:<15} on object {}\n", object_id,
+            std::cout << std::format("lock({})   response from server {} :  {:<15} on object {}\n", object_id,
                        response_server_id, magic_enum::enum_name(response_op), response_object_id);
         } else if (operation == std::string("unlock")) {
             auto [response_op, response_object_id, response_server_id] = client.unlock(object_id);
-            fmt::print("unlock({}) response from server {} :  {:<15} on object {}\n", object_id,
+            std::cout << std::format("unlock({}) response from server {} :  {:<15} on object {}\n", object_id,
                        response_server_id, magic_enum::enum_name(response_op), response_object_id);
         } else if (operation == std::string("wait")) {
-            fmt::print("wait({}ms) response:  none\n", object_id);
+            std::cout << std::format("wait({}ms) response:  none\n", object_id);
             std::this_thread::sleep_for(std::chrono::milliseconds(object_id));
         } else if (operation == std::string("server")) {
             if (object_id >= 0 && object_id < client.config->number_of_nodes) {
-                fmt::print("server({}) response:  none\n", object_id);
+                std::cout << std::format("server({}) response:  none\n", object_id);
                 client.reset_current_server_id(object_id);
             } else {
-                fmt::print("Invalid Server Id : {}\n", command_format);
+                std::cout << std::format("Invalid Server Id : {}\n", command_format);
             }
         } else {
-            fmt::print("Invalid Operation : {}\n", command_format);
+            std::cout << std::format("Invalid Operation : {}\n", command_format);
         }
         if (input_stream == &std::cin) {
             std::cout << "Please Input Command:\t" << std::flush;

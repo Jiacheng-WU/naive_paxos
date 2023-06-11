@@ -55,7 +55,7 @@ void Connection::do_send(std::unique_ptr<Message> m_p,
                                   if (SEND_RETRY_TIMES > 0) {
                                       resend_if_do_send_failed(std::move(m_p), std::move(endpoint), std::move(handler));
                                   } else {
-                                      BOOST_LOG_TRIVIAL(debug) << fmt::format("Failed to send {}:{} with error {}\n",
+                                      BOOST_LOG_TRIVIAL(debug) << std::format("Failed to send {}:{} with error {}\n",
                                                                               endpoint->address().to_string(),
                                                                               endpoint->port(),
                                                                               ec.message());
@@ -86,7 +86,7 @@ void Connection::do_receive(std::unique_ptr<Message> m_p, Handler handler) {
                                    in_buf.release();
                                    if (ec) {
                                        BOOST_LOG_TRIVIAL(debug)
-                                           << fmt::format("Failed to receive {}:{} with error {}\n",
+                                           << std::format("Failed to receive {}:{} with error {}\n",
                                                           endpoint->address().to_string(),
                                                           endpoint->port(),
                                                           ec.message());

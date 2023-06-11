@@ -24,7 +24,7 @@ PaxosClient::lock_or_unlock(std::uint32_t object_id, PaxosClient::op_type op) {
     std::unique_ptr<Message> submit = construct_lock_or_unlock_message(object_id, op);
     submit->serialize_to(out_message);
 
-    BOOST_LOG_TRIVIAL(trace) << fmt::format("Send {} request on object {} with op_id {} to Server {} {}:{}",
+    BOOST_LOG_TRIVIAL(trace) << std::format("Send {} request on object {} with op_id {} to Server {} {}:{}",
                                             magic_enum::enum_name(op), object_id, submit->proposal.value.client_once,
                                             server_id,
                                             config->server_id_to_addr_map[server_id].address().to_string(),
@@ -38,7 +38,7 @@ PaxosClient::lock_or_unlock(std::uint32_t object_id, PaxosClient::op_type op) {
     while (len == 0) {
 
         BOOST_LOG_TRIVIAL(trace)
-            << fmt::format("Resend {} request on object {} with op_id {} to Server {} {}:{} due to Receive Error {}",
+            << std::format("Resend {} request on object {} with op_id {} to Server {} {}:{} due to Receive Error {}",
                            magic_enum::enum_name(op), object_id, submit->proposal.value.client_once, server_id,
                            config->server_id_to_addr_map[server_id].address().to_string(),
                            config->server_id_to_addr_map[server_id].port(), error.message());
@@ -54,7 +54,7 @@ PaxosClient::lock_or_unlock(std::uint32_t object_id, PaxosClient::op_type op) {
         std::size_t len = this->receive(boost::asio::buffer(in_message),
                                         std::chrono::milliseconds(config->client_retry_milliseconds), error);
         while (len == 0) {
-            BOOST_LOG_TRIVIAL(trace) << fmt::format(
+            BOOST_LOG_TRIVIAL(trace) << std::format(
                         "Resend {} request on object {} with op_id {} to Server {} {}:{} due to Receive Error {}",
                         magic_enum::enum_name(op), object_id, submit->proposal.value.client_once, server_id,
                         config->server_id_to_addr_map[server_id].address().to_string(),

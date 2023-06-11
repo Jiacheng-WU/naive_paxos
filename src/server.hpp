@@ -9,13 +9,13 @@
 #include <unordered_map>
 #include <queue>
 #include <set>
+#include <format>
 
 #include "config.hpp"
 #include "logger.hpp"
 #include "network.hpp"
 #include "instance.hpp"
 
-#include "fmt/core.h"
 
 class PaxosServer {
   public:

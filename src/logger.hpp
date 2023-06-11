@@ -16,7 +16,6 @@
 #include <fstream>
 #include <filesystem>
 
-#include "fmt/core.h"
 #include "sync.hpp"
 #include "message.hpp"
 
@@ -40,7 +39,6 @@ class Logger {
 
         learner_log_filesize = std::filesystem::file_size(learner_log_path);
 
-//        fmt::print("{} {}\n", acceptor_log_path.generic_string(), acceptor_log_filesize);
         acceptor_log_file.open(acceptor_log_path, std::ios::out | std::ios::in | std::ios::binary);
         learner_log_file.open(learner_log_path, std::ios::out | std::ios::in | std::ios::binary);
 

@@ -14,9 +14,6 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(util)
 include_directories(src)
 
-add_subdirectory(third_party/fmt-9.1.0)
-include_directories(third_party/fmt-9.1.0/include)
-
 add_executable(paxos_server
         server_main.cpp
         util/network.cpp
@@ -27,7 +24,7 @@ add_executable(paxos_server
         src/instance.cpp
         src/logger.cpp
         src/config.cpp)
-target_link_libraries(paxos_server ${Boost_LIBRARIES} fmt::fmt)
+target_link_libraries(paxos_server ${Boost_LIBRARIES})
 
 
 add_executable(paxos_client
@@ -35,4 +32,4 @@ add_executable(paxos_client
         src/client.cpp
         src/config.cpp
         util/network.cpp)
-target_link_libraries(paxos_client ${Boost_LIBRARIES} fmt::fmt)
+target_link_libraries(paxos_client ${Boost_LIBRARIES})
